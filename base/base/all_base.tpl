@@ -309,6 +309,7 @@ rule-providers:
     interval: 86400
 
 rules:
+  - "IP-CIDR,169.254.0.0/16,REJECT,no-resolve"
   # ---- 学术出版 / 科研文献平台（人工强制直连，最高优先级） ----
   - "DOMAIN-SUFFIX,ieee.org,DIRECT"
   - "DOMAIN-SUFFIX,taylorfrancis.com,DIRECT"
