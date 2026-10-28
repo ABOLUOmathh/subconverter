@@ -552,7 +552,7 @@ void explodeSS(std::string ss, Proxy &node)
         node.UDPOverTCP = (uot_val_check == "1" || uot_val_check == "true");
     if(!uot_ver_check.empty())
         node.UDPOverTCPVersion = to_int(uot_ver_check, 1);
-    else if(node.UDPOverTCP.is_true())
+    else if(node.UDPOverTCP.get())
         node.UDPOverTCPVersion = 1;
     if(node.UDPOverTCP.is_undef() && strFind(node.Password, "#BLACKSTONE"))
     {
@@ -1440,7 +1440,7 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
                 node.UDPOverTCP = safe_as<std::string>(singleproxy["uot"]) == "true";
             if(singleproxy["udp-over-tcp-version"].IsDefined())
                 node.UDPOverTCPVersion = to_int(safe_as<std::string>(singleproxy["udp-over-tcp-version"]), 1);
-            else if(node.UDPOverTCP.is_true())
+            else if(node.UDPOverTCP.get())
                 node.UDPOverTCPVersion = 1;
             if(node.UDPOverTCP.is_undef() && strFind(node.Password, "#BLACKSTONE"))
             {
