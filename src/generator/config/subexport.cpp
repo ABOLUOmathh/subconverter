@@ -566,6 +566,77 @@ void proxyToClash(std::vector<Proxy> &nodes, YAML::Node &yamlnode, const ProxyGr
             if (!scv.is_undef())
                 singleproxy["skip-cert-verify"] = scv.get();
             break;
+        case ProxyType::VLESS:
+            singleproxy["type"] = "vless";
+            singleproxy["uuid"] = x.UserId;
+            singleproxy["tls"] = x.TLSSecure;
+            if(!x.Flow.empty())
+                singleproxy["flow"] = x.Flow;
+            if(!scv.is_undef())
+                singleproxy["skip-cert-verify"] = scv.get();
+            if(!x.ServerName.empty())
+                singleproxy["servername"] = x.ServerName;
+            if(!x.Fingerprint.empty())
+                singleproxy["client-fingerprint"] = x.Fingerprint;
+            else if(!x.RealityPublicKey.empty() || x.Flow == "xtls-rprx-vision")
+                singleproxy["client-fingerprint"] = "chrome";
+            if(!x.RealityPublicKey.empty())
+                singleproxy["reality-opts"]["public-key"] = x.RealityPublicKey;
+            if(!x.RealityShortId.empty())
+                singleproxy["reality-opts"]["short-id"] = x.RealityShortId;
+            if(!x.E.is_undef())
+                singleproxy["e"] = x.E.get();
+            if(!x.H.empty())
+                singleproxy["h"] = x.H;
+            switch(hash_(x.TransferProtocol))
+            {
+            case "tcp"_hash:
+                break;
+            case "ws"_hash:
+                singleproxy["network"] = x.TransferProtocol;
+                singleproxy["ws-opts"]["path"] = x.Path.empty() ? "/" : x.Path;
+                if(!x.Host.empty())
+                    singleproxy["ws-opts"]["headers"]["Host"] = x.Host;
+                break;
+            case "grpc"_hash:
+                singleproxy["network"] = x.TransferProtocol;
+                if(!x.Path.empty())
+                    singleproxy["grpc-opts"]["grpc-service-name"] = x.Path;
+                break;
+            case "xhttp"_hash:
+                singleproxy["network"] = "xhttp";
+                singleproxy["xhttp-opts"]["path"] = x.Path.empty() ? "/" : x.Path;
+                if(!x.Host.empty())
+                    singleproxy["xhttp-opts"]["headers"]["Host"] = x.Host;
+                break;
+            }
+            break;
+        case ProxyType::OneSocks:
+            singleproxy["type"] = "onesocks";
+            singleproxy["cipher"] = x.EncryptMethod.empty() ? "aes-128-ctr" : x.EncryptMethod;
+            singleproxy["password"] = x.Password;
+            if(!x.PaddingLen.empty())
+                singleproxy["padding-len"] = to_int(x.PaddingLen, 0);
+            if(!x.E.is_undef())
+                singleproxy["e"] = x.E.get();
+            if(!x.H.empty())
+                singleproxy["h"] = x.H;
+            break;
+        case ProxyType::HeySocks:
+            singleproxy["type"] = "heysocks";
+            singleproxy["cipher"] = x.EncryptMethod.empty() ? "aes-128-ctr" : x.EncryptMethod;
+            singleproxy["password"] = x.Password;
+            if(!x.PaddingLen.empty())
+                singleproxy["padding-len"] = to_int(x.PaddingLen, 0);
+            if(!x.FakeNet.empty())
+                singleproxy["fake-net"] = x.FakeNet;
+            if(!x.Path.empty())
+                singleproxy["path"] = x.Path;
+            if(!x.E.is_undef())
+                singleproxy["e"] = x.E.get();
+            if(!x.H.empty())
+                singleproxy["h"] = x.H;
+            break;
         default:
             continue;
         }
@@ -2514,6 +2585,52 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
                 proxy.AddMember("users", users, allocator);
                 break;
             }
+            case ProxyType::VLESS:
+            {
+                addSingBoxCommonMembers(proxy, x, "vless", allocator);
+                proxy.AddMember("uuid", rapidjson::StringRef(x.UserId.c_str()), allocator);
+                if (!x.Flow.empty())
+                    proxy.AddMember("flow", rapidjson::StringRef(x.Flow.c_str()), allocator);
+                if (!x.E.is_undef())
+                    proxy.AddMember("e", x.E.get(), allocator);
+                if (!x.H.empty())
+                    proxy.AddMember("h", rapidjson::StringRef(x.H.c_str()), allocator);
+
+                auto transport = buildSingBoxTransport(x, allocator);
+                if (!transport.ObjectEmpty())
+                    proxy.AddMember("transport", transport, allocator);
+                break;
+            }
+            case ProxyType::OneSocks:
+            {
+                addSingBoxCommonMembers(proxy, x, "onesocks", allocator);
+                proxy.AddMember("method", rapidjson::StringRef(x.EncryptMethod.c_str()), allocator);
+                proxy.AddMember("password", rapidjson::StringRef(x.Password.c_str()), allocator);
+                if (!x.PaddingLen.empty())
+                    proxy.AddMember("padding_len", to_int(x.PaddingLen, 0), allocator);
+                if (!x.E.is_undef())
+                    proxy.AddMember("e", x.E.get(), allocator);
+                if (!x.H.empty())
+                    proxy.AddMember("h", rapidjson::StringRef(x.H.c_str()), allocator);
+                break;
+            }
+            case ProxyType::HeySocks:
+            {
+                addSingBoxCommonMembers(proxy, x, "heysocks", allocator);
+                proxy.AddMember("method", rapidjson::StringRef(x.EncryptMethod.c_str()), allocator);
+                proxy.AddMember("password", rapidjson::StringRef(x.Password.c_str()), allocator);
+                if (!x.PaddingLen.empty())
+                    proxy.AddMember("padding_len", to_int(x.PaddingLen, 0), allocator);
+                if (!x.FakeNet.empty())
+                    proxy.AddMember("fake_net", rapidjson::StringRef(x.FakeNet.c_str()), allocator);
+                if (!x.Path.empty())
+                    proxy.AddMember("path", rapidjson::StringRef(x.Path.c_str()), allocator);
+                if (!x.E.is_undef())
+                    proxy.AddMember("e", x.E.get(), allocator);
+                if (!x.H.empty())
+                    proxy.AddMember("h", rapidjson::StringRef(x.H.c_str()), allocator);
+                break;
+            }
             default:
                 continue;
         }
@@ -2541,6 +2658,29 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
             }
             if (!x.CaStr.empty())
                 tls.AddMember("certificate", rapidjson::StringRef(x.CaStr.c_str()), allocator);
+
+            if (!x.RealityPublicKey.empty())
+            {
+                rapidjson::Value reality(rapidjson::kObjectType);
+                reality.AddMember("enabled", true, allocator);
+                reality.AddMember("public_key", rapidjson::StringRef(x.RealityPublicKey.c_str()), allocator);
+                if (!x.RealityShortId.empty())
+                    reality.AddMember("short_id", rapidjson::StringRef(x.RealityShortId.c_str()), allocator);
+                tls.AddMember("reality", reality, allocator);
+
+                rapidjson::Value utls(rapidjson::kObjectType);
+                utls.AddMember("enabled", true, allocator);
+                utls.AddMember("fingerprint", rapidjson::StringRef(x.Fingerprint.empty() ? "chrome" : x.Fingerprint.c_str()), allocator);
+                tls.AddMember("utls", utls, allocator);
+            }
+            else if (!x.Fingerprint.empty())
+            {
+                rapidjson::Value utls(rapidjson::kObjectType);
+                utls.AddMember("enabled", true, allocator);
+                utls.AddMember("fingerprint", rapidjson::StringRef(x.Fingerprint.c_str()), allocator);
+                tls.AddMember("utls", utls, allocator);
+            }
+
             proxy.AddMember("tls", tls, allocator);
         }
         if (!udp.is_undef() && !udp)

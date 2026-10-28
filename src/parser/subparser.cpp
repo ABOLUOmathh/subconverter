@@ -943,6 +943,155 @@ void explodeTrojan(std::string trojan, Proxy &node)
     trojanConstruct(node, group, remark, server, port, psk, network, host, path, true, tribool(), tfo, scv);
 }
 
+void explodeVless(std::string vless, Proxy &node)
+{
+    std::string server, port, uuid, addition, group, remark, flow, security, sni, pbk, sid, net, path, fp, e_val, h_val;
+    vless.erase(0, 8);
+    string_size pos = vless.rfind('#');
+    if(pos != std::string::npos)
+    {
+        remark = urlDecode(vless.substr(pos + 1));
+        vless.erase(pos);
+    }
+    pos = vless.find('?');
+    if(pos != std::string::npos)
+    {
+        addition = vless.substr(pos + 1);
+        vless.erase(pos);
+    }
+
+    if(regGetMatch(vless, "(.*?)@(.*):(.*)", 4, 0, &uuid, &server, &port))
+        return;
+    if(port == "0")
+        return;
+
+    flow = getUrlArg(addition, "flow");
+    security = getUrlArg(addition, "security");
+    sni = getUrlArg(addition, "sni");
+    if(sni.empty())
+        sni = getUrlArg(addition, "peer");
+    fp = getUrlArg(addition, "fp");
+    pbk = getUrlArg(addition, "pbk");
+    sid = getUrlArg(addition, "sid");
+    net = getUrlArg(addition, "type");
+    path = urlDecode(getUrlArg(addition, "path"));
+    e_val = getUrlArg(addition, "e");
+    h_val = getUrlArg(addition, "h");
+    group = urlDecode(getUrlArg(addition, "group"));
+
+    node.Type = ProxyType::VLESS;
+    node.Remark = remark.empty() ? (server + ":" + port) : remark;
+    node.Hostname = server;
+    node.Port = to_int(port, 443);
+    node.UserId = uuid;
+    node.Flow = flow;
+    node.TLSSecure = (security == "tls" || security == "reality");
+    node.ServerName = sni;
+    node.SNI = sni;
+    node.Fingerprint = fp;
+    node.RealityPublicKey = pbk;
+    node.RealityShortId = sid;
+    node.TransferProtocol = net.empty() ? "tcp" : net;
+    node.Path = path;
+    if(!e_val.empty())
+        node.E = (e_val == "1" || e_val == "true");
+    node.H = h_val;
+    node.Group = group.empty() ? VLESS_DEFAULT_GROUP : group;
+}
+
+void explodeOneSocks(std::string onesocks, Proxy &node)
+{
+    std::string server, port, password, addition, group, remark, cipher, padding_len, e_val, h_val;
+    onesocks.erase(0, 11);
+    string_size pos = onesocks.rfind('#');
+    if(pos != std::string::npos)
+    {
+        remark = urlDecode(onesocks.substr(pos + 1));
+        onesocks.erase(pos);
+    }
+    pos = onesocks.find('?');
+    if(pos != std::string::npos)
+    {
+        addition = onesocks.substr(pos + 1);
+        onesocks.erase(pos);
+    }
+
+    if(regGetMatch(onesocks, "(.*?)@(.*):(.*)", 4, 0, &password, &server, &port))
+        return;
+    if(port == "0")
+        return;
+
+    cipher = getUrlArg(addition, "cipher");
+    if(cipher.empty())
+        cipher = "aes-128-ctr";
+    padding_len = getUrlArg(addition, "padding_len");
+    if(padding_len.empty())
+        padding_len = getUrlArg(addition, "padding-len");
+
+    e_val = getUrlArg(addition, "e");
+    h_val = getUrlArg(addition, "h");
+    group = urlDecode(getUrlArg(addition, "group"));
+
+    node.Type = ProxyType::OneSocks;
+    node.Remark = remark.empty() ? (server + ":" + port) : remark;
+    node.Hostname = server;
+    node.Port = to_int(port, 8388);
+    node.Password = password;
+    node.EncryptMethod = cipher;
+    node.PaddingLen = padding_len;
+    if(!e_val.empty())
+        node.E = (e_val == "1" || e_val == "true");
+    node.H = h_val;
+    node.Group = group.empty() ? ONESOCKS_DEFAULT_GROUP : group;
+}
+
+void explodeHeySocks(std::string heysocks, Proxy &node)
+{
+    std::string server, port, password, addition, group, remark, cipher, padding_len, fake_net, path, e_val, h_val;
+    heysocks.erase(0, 11);
+    string_size pos = heysocks.rfind('#');
+    if(pos != std::string::npos)
+    {
+        remark = urlDecode(heysocks.substr(pos + 1));
+        heysocks.erase(pos);
+    }
+    pos = heysocks.find('?');
+    if(pos != std::string::npos)
+    {
+        addition = heysocks.substr(pos + 1);
+        heysocks.erase(pos);
+    }
+
+    if(regGetMatch(heysocks, "(.*?)@(.*):(.*)", 4, 0, &password, &server, &port))
+        return;
+    if(port == "0")
+        return;
+
+    cipher = getUrlArg(addition, "cipher");
+    if(cipher.empty())
+        cipher = "aes-128-ctr";
+    padding_len = getUrlArg(addition, "padding_len");
+    fake_net = getUrlArg(addition, "fake_net");
+    path = urlDecode(getUrlArg(addition, "path"));
+    e_val = getUrlArg(addition, "e");
+    h_val = getUrlArg(addition, "h");
+    group = urlDecode(getUrlArg(addition, "group"));
+
+    node.Type = ProxyType::HeySocks;
+    node.Remark = remark.empty() ? (server + ":" + port) : remark;
+    node.Hostname = server;
+    node.Port = to_int(port, 8388);
+    node.Password = password;
+    node.EncryptMethod = cipher;
+    node.PaddingLen = padding_len;
+    node.FakeNet = fake_net;
+    node.Path = path;
+    if(!e_val.empty())
+        node.E = (e_val == "1" || e_val == "true");
+    node.H = h_val;
+    node.Group = group.empty() ? HEYSOCKS_DEFAULT_GROUP : group;
+}
+
 void explodeQuan(const std::string &quan, Proxy &node)
 {
     std::string strTemp, itemName, itemVal;
@@ -1122,6 +1271,7 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
     std::string ip, ipv6, private_key, public_key, mtu; //wireguard
     std::string ports, obfs_protocol, up, up_speed, down, down_speed, auth, auth_str,/* obfs, sni,*/ fingerprint, ca, ca_str, recv_window_conn, recv_window, disable_mtu_discovery, hop_interval, alpn; //hysteria
     std::string obfs_password, cwnd; //hysteria2
+    std::string flow, pbk, sid, padding_len, fake_net, e_val, h_val; // custom protocols
     string_array dns_server;
     tribool udp, tfo, scv;
     Node singleproxy;
@@ -1395,6 +1545,140 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
             singleproxy["sni"] >>= sni;
 
             anyTLSConstruct(node, group, ps, server, port, password, sni, udp, tfo, scv, underlying_proxy);
+            break;
+        case "vless"_hash:
+            group = VLESS_DEFAULT_GROUP;
+            flow.clear(); pbk.clear(); sid.clear(); fingerprint.clear(); e_val.clear(); h_val.clear(); path.clear(); host.clear(); sni.clear();
+            singleproxy["uuid"] >>= id;
+            singleproxy["flow"] >>= flow;
+            singleproxy["client-fingerprint"] >>= fingerprint;
+            if(singleproxy["reality-opts"].IsDefined())
+            {
+                singleproxy["reality-opts"]["public-key"] >>= pbk;
+                singleproxy["reality-opts"]["short-id"] >>= sid;
+            }
+            net = singleproxy["network"].IsDefined() ? safe_as<std::string>(singleproxy["network"]) : "tcp";
+            sni = singleproxy["servername"].IsDefined() ? safe_as<std::string>(singleproxy["servername"]) : safe_as<std::string>(singleproxy["sni"]);
+            singleproxy["tls"] >>= tls;
+            if(singleproxy["e"].IsDefined())
+                singleproxy["e"] >>= e_val;
+            if(singleproxy["h"].IsDefined())
+                singleproxy["h"] >>= h_val;
+
+            switch(hash_(net))
+            {
+            case "ws"_hash:
+                if(singleproxy["ws-opts"].IsDefined())
+                {
+                    path = singleproxy["ws-opts"]["path"].IsDefined() ? safe_as<std::string>(singleproxy["ws-opts"]["path"]) : "/";
+                    singleproxy["ws-opts"]["headers"]["Host"] >>= host;
+                    if(host.empty())
+                        singleproxy["ws-opts"]["headers"]["host"] >>= host;
+                }
+                else
+                {
+                    path = singleproxy["ws-path"].IsDefined() ? safe_as<std::string>(singleproxy["ws-path"]) : "/";
+                    singleproxy["ws-headers"]["Host"] >>= host;
+                }
+                break;
+            case "grpc"_hash:
+                singleproxy["grpc-opts"]["grpc-service-name"] >>= path;
+                singleproxy["servername"] >>= host;
+                break;
+            case "xhttp"_hash:
+                if(singleproxy["xhttp-opts"].IsDefined())
+                {
+                    path = singleproxy["xhttp-opts"]["path"].IsDefined() ? safe_as<std::string>(singleproxy["xhttp-opts"]["path"]) : "/";
+                    singleproxy["xhttp-opts"]["headers"]["Host"] >>= host;
+                }
+                break;
+            default:
+                break;
+            }
+
+            node.Type = ProxyType::VLESS;
+            node.Remark = ps;
+            node.Hostname = server;
+            node.Port = to_int(port, 443);
+            node.UserId = id;
+            node.Flow = flow;
+            node.TLSSecure = (tls == "true" || !pbk.empty());
+            node.ServerName = sni.empty() ? host : sni;
+            node.RealityPublicKey = pbk;
+            node.RealityShortId = sid;
+            node.Fingerprint = fingerprint;
+            node.TransferProtocol = net;
+            node.Path = path;
+            node.Host = host;
+            node.UDP = udp;
+            node.TCPFastOpen = tfo;
+            node.AllowInsecure = scv;
+            node.Group = group;
+            if(!e_val.empty())
+                node.E = (e_val == "1" || e_val == "true");
+            node.H = h_val;
+            break;
+        case "onesocks"_hash:
+            group = ONESOCKS_DEFAULT_GROUP;
+            padding_len.clear(); e_val.clear(); h_val.clear(); cipher.clear(); password.clear();
+            singleproxy["cipher"] >>= cipher;
+            singleproxy["password"] >>= password;
+            singleproxy["padding-len"] >>= padding_len;
+            if(padding_len.empty())
+                singleproxy["padding_len"] >>= padding_len;
+            if(singleproxy["e"].IsDefined())
+                singleproxy["e"] >>= e_val;
+            if(singleproxy["h"].IsDefined())
+                singleproxy["h"] >>= h_val;
+
+            node.Type = ProxyType::OneSocks;
+            node.Remark = ps;
+            node.Hostname = server;
+            node.Port = to_int(port, 8388);
+            node.EncryptMethod = cipher.empty() ? "aes-128-ctr" : cipher;
+            node.Password = password;
+            node.PaddingLen = padding_len;
+            node.UDP = udp;
+            node.TCPFastOpen = tfo;
+            node.AllowInsecure = scv;
+            node.Group = group;
+            if(!e_val.empty())
+                node.E = (e_val == "1" || e_val == "true");
+            node.H = h_val;
+            break;
+        case "heysocks"_hash:
+            group = HEYSOCKS_DEFAULT_GROUP;
+            padding_len.clear(); fake_net.clear(); path.clear(); e_val.clear(); h_val.clear(); cipher.clear(); password.clear();
+            singleproxy["cipher"] >>= cipher;
+            singleproxy["password"] >>= password;
+            singleproxy["padding-len"] >>= padding_len;
+            if(padding_len.empty())
+                singleproxy["padding_len"] >>= padding_len;
+            singleproxy["fake-net"] >>= fake_net;
+            if(fake_net.empty())
+                singleproxy["fake_net"] >>= fake_net;
+            singleproxy["path"] >>= path;
+            if(singleproxy["e"].IsDefined())
+                singleproxy["e"] >>= e_val;
+            if(singleproxy["h"].IsDefined())
+                singleproxy["h"] >>= h_val;
+
+            node.Type = ProxyType::HeySocks;
+            node.Remark = ps;
+            node.Hostname = server;
+            node.Port = to_int(port, 8388);
+            node.EncryptMethod = cipher.empty() ? "aes-128-ctr" : cipher;
+            node.Password = password;
+            node.PaddingLen = padding_len;
+            node.FakeNet = fake_net;
+            node.Path = path;
+            node.UDP = udp;
+            node.TCPFastOpen = tfo;
+            node.AllowInsecure = scv;
+            node.Group = group;
+            if(!e_val.empty())
+                node.E = (e_val == "1" || e_val == "true");
+            node.H = h_val;
             break;
         default:
             continue;
@@ -2594,6 +2878,12 @@ void explode(const std::string &link, Proxy &node)
         explodeHysteria2(link, node);
     else if (startsWith(link, "anytls://"))
         explodeAnyTLS(link, node);
+    else if(startsWith(link, "vless://"))
+        explodeVless(link, node);
+    else if(startsWith(link, "onesocks://"))
+        explodeOneSocks(link, node);
+    else if(startsWith(link, "heysocks://"))
+        explodeHeySocks(link, node);
     else if(isLink(link))
         explodeHTTPSub(link, node);
 }

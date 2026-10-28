@@ -24,6 +24,9 @@ enum class ProxyType
     Hysteria,
     Hysteria2,
     AnyTLS,
+    VLESS,
+    OneSocks,
+    HeySocks,
 };
 
 inline String getProxyTypeName(ProxyType type)
@@ -54,6 +57,12 @@ inline String getProxyTypeName(ProxyType type)
         return "Hysteria2";
     case ProxyType::AnyTLS:
         return "AnyTLS";
+    case ProxyType::VLESS:
+        return "VLESS";
+    case ProxyType::OneSocks:
+        return "OneSocks";
+    case ProxyType::HeySocks:
+        return "HeySocks";
     default:
         return "Unknown";
     }
@@ -130,6 +139,15 @@ struct Proxy
     StringArray Alpn;
 
     uint32_t CWND = 0;
+
+    // Custom protocols extensions (OneSocks, HeySocks, VLESS-EH)
+    String PaddingLen;
+    tribool E;
+    String H;
+    String Flow;
+    String RealityPublicKey;
+    String RealityShortId;
+    String FakeNet;
 };
 
 #define SS_DEFAULT_GROUP "SSProvider"
@@ -143,5 +161,8 @@ struct Proxy
 #define HYSTERIA_DEFAULT_GROUP "HysteriaProvider"
 #define HYSTERIA2_DEFAULT_GROUP "Hysteria2Provider"
 #define ANYTLS_DEFAULT_GROUP "AnyTLSProvider"
+#define VLESS_DEFAULT_GROUP "VLESSProvider"
+#define ONESOCKS_DEFAULT_GROUP "OneSocksProvider"
+#define HEYSOCKS_DEFAULT_GROUP "HeySocksProvider"
 
 #endif // PROXY_H_INCLUDED
