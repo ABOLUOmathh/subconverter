@@ -301,6 +301,38 @@ rule-providers:
     interval: 86400
 
 rules:
+  # ---- 学术出版 / 科研文献平台（人工强制直连，最高优先级） ----
+  - "DOMAIN-SUFFIX,ieee.org,DIRECT"
+  - "DOMAIN-SUFFIX,taylorfrancis.com,DIRECT"
+  - "DOMAIN-SUFFIX,tandfonline.com,DIRECT"
+  - "DOMAIN-SUFFIX,doi.org,DIRECT"
+  - "DOMAIN-SUFFIX,crossref.org,DIRECT"
+  - "DOMAIN-SUFFIX,nature.com,DIRECT"
+  - "DOMAIN-SUFFIX,springer.com,DIRECT"
+  - "DOMAIN-SUFFIX,rsc.org,DIRECT"
+  - "DOMAIN-SUFFIX,wiley.com,DIRECT"
+  - "DOMAIN-SUFFIX,silverchair.com,DIRECT"
+  - "DOMAIN-SUFFIX,elsevierhealth.com,DIRECT"
+  - "DOMAIN-SUFFIX,elsevier.com,DIRECT"
+  - "DOMAIN-SUFFIX,cell.com,DIRECT"
+  - "DOMAIN-SUFFIX,aps.org,DIRECT"
+  - "DOMAIN-SUFFIX,acs.org,DIRECT"
+  - "DOMAIN-SUFFIX,aip.org,DIRECT"
+  - "DOMAIN-SUFFIX,sciencedirect.com,DIRECT"
+  - "DOMAIN-SUFFIX,sciencedirectassets.com,DIRECT"
+
+  # ---- 网络出口 / IP 泄漏检测（人工强制代理） ----
+  - "DOMAIN-SUFFIX,ping0.cc,🚀 节点选择"
+  - "DOMAIN-SUFFIX,ip.sb,🚀 节点选择"
+  - "DOMAIN-SUFFIX,ipinfo.io,🚀 节点选择"
+  - "DOMAIN-SUFFIX,ip-api.com,🚀 节点选择"
+  - "DOMAIN-SUFFIX,ifconfig.me,🚀 节点选择"
+  - "DOMAIN-SUFFIX,icanhazip.com,🚀 节点选择"
+  - "DOMAIN-SUFFIX,ipleak.net,🚀 节点选择"
+  - "DOMAIN-SUFFIX,dnsleaktest.com,🚀 节点选择"
+  - "DOMAIN-SUFFIX,browserleaks.com,🚀 节点选择"
+  - "DOMAIN-SUFFIX,whoer.net,🚀 节点选择"
+
   - "RULE-SET,LocalAreaNetwork,🎯 全球直连"
   - "RULE-SET,UnBan,🎯 全球直连"
   - "RULE-SET,BanAD,🛑 广告拦截"
@@ -693,6 +725,44 @@ enhanced-mode-by-rule = true
     "outbounds": [],
     "route": {
         "rules": [
+            {
+                "domain_suffix": [
+                    "ieee.org",
+                    "taylorfrancis.com",
+                    "tandfonline.com",
+                    "doi.org",
+                    "crossref.org",
+                    "nature.com",
+                    "springer.com",
+                    "rsc.org",
+                    "wiley.com",
+                    "silverchair.com",
+                    "elsevierhealth.com",
+                    "elsevier.com",
+                    "cell.com",
+                    "aps.org",
+                    "acs.org",
+                    "aip.org",
+                    "sciencedirect.com",
+                    "sciencedirectassets.com"
+                ],
+                "outbound": "DIRECT"
+            },
+            {
+                "domain_suffix": [
+                    "ping0.cc",
+                    "ip.sb",
+                    "ipinfo.io",
+                    "ip-api.com",
+                    "ifconfig.me",
+                    "icanhazip.com",
+                    "ipleak.net",
+                    "dnsleaktest.com",
+                    "browserleaks.com",
+                    "whoer.net"
+                ],
+                "outbound": "🚀 节点选择"
+            },
             {
                 "domain_suffix": [
                     "local"

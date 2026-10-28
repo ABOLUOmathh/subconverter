@@ -1,0 +1,43 @@
+# ================================================================
+# custom-direct.list
+# 人工强制直连名单（最高优先级）
+#
+# 格式：Mihomo classical text，一行一条规则，不要写策略名。
+# 例如：
+# DOMAIN-SUFFIX,example.edu
+# DOMAIN,portal.example.edu
+# IP-CIDR,192.0.2.0/24,no-resolve
+#
+# 这里适合：
+# - 校园 / 机构 VPN 下需要使用机构出口访问的科研资源
+# - 公司内网、NAS、特殊直连站点
+#
+# 注意：
+# - 不要把订阅 URL、账号、密码、Token 写进本文件。
+# - 校园/单位专用域名或网段请自行追加；模板不包含任何私有信息。
+# ================================================================
+
+# ---- 学术出版 / DOI / 文献平台 ----
+DOMAIN-SUFFIX,ieee.org
+DOMAIN-SUFFIX,taylorfrancis.com
+DOMAIN-SUFFIX,tandfonline.com
+DOMAIN-SUFFIX,doi.org
+DOMAIN-SUFFIX,crossref.org
+DOMAIN-SUFFIX,nature.com
+DOMAIN-SUFFIX,springer.com
+DOMAIN-SUFFIX,rsc.org
+DOMAIN-SUFFIX,wiley.com
+DOMAIN-SUFFIX,silverchair.com
+DOMAIN-SUFFIX,elsevierhealth.com
+DOMAIN-SUFFIX,elsevier.com
+DOMAIN-SUFFIX,cell.com
+DOMAIN-SUFFIX,aps.org
+DOMAIN-SUFFIX,acs.org
+DOMAIN-SUFFIX,aip.org
+DOMAIN-SUFFIX,sciencedirect.com
+DOMAIN-SUFFIX,sciencedirectassets.com
+
+# ---- 在下面追加个人直连规则 ----
+# DOMAIN-SUFFIX,example.edu
+
+# DOMAIN-SUFFIX,cdn.heysocks.life
