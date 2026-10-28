@@ -148,6 +148,8 @@ struct Proxy
     String RealityPublicKey;
     String RealityShortId;
     String FakeNet;
+    String FakeNetTCP;
+    String FakeNetUDP;
     tribool UDPOverTCP;
     uint32_t UDPOverTCPVersion = 0;
 };

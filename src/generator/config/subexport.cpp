@@ -617,23 +617,45 @@ void proxyToClash(std::vector<Proxy> &nodes, YAML::Node &yamlnode, const ProxyGr
             }
             break;
         case ProxyType::OneSocks:
-            singleproxy["type"] = "onesocks";
+            singleproxy["type"] = "os";
             singleproxy["cipher"] = x.EncryptMethod.empty() ? "aes-128-ctr" : x.EncryptMethod;
             singleproxy["password"] = x.Password;
+            if(!x.UDP.is_undef())
+                singleproxy["udp"] = x.UDP.get();
+            else
+                singleproxy["udp"] = true;
+            if(!x.UDPOverTCP.is_undef())
+                singleproxy["udp-over-tcp"] = x.UDPOverTCP.get();
+            if(x.UDPOverTCPVersion > 0)
+                singleproxy["udp-over-tcp-version"] = x.UDPOverTCPVersion;
             if(!x.PaddingLen.empty())
-                singleproxy["padding-len"] = to_int(x.PaddingLen, 0);
+                singleproxy["padding-len"] = x.PaddingLen;
             if(!x.E.is_undef())
                 singleproxy["e"] = x.E.get();
             if(!x.H.empty())
                 singleproxy["h"] = x.H;
             break;
         case ProxyType::HeySocks:
-            singleproxy["type"] = "heysocks";
+            singleproxy["type"] = "xhttp";
             singleproxy["cipher"] = x.EncryptMethod.empty() ? "aes-128-ctr" : x.EncryptMethod;
             singleproxy["password"] = x.Password;
+            if(!x.UDP.is_undef())
+                singleproxy["udp"] = x.UDP.get();
+            else
+                singleproxy["udp"] = true;
+            if(!x.UDPOverTCP.is_undef())
+                singleproxy["udp-over-tcp"] = x.UDPOverTCP.get();
+            singleproxy["udp-over-tcp-version"] = x.UDPOverTCPVersion;
             if(!x.PaddingLen.empty())
-                singleproxy["padding-len"] = to_int(x.PaddingLen, 0);
-            if(!x.FakeNet.empty())
+                singleproxy["padding-len"] = x.PaddingLen;
+            if(!x.FakeNetTCP.empty() || !x.FakeNetUDP.empty())
+            {
+                YAML::Node fn;
+                fn["tcp"] = x.FakeNetTCP;
+                fn["udp"] = x.FakeNetUDP;
+                singleproxy["fake-net"] = fn;
+            }
+            else if(!x.FakeNet.empty())
                 singleproxy["fake-net"] = x.FakeNet;
             if(!x.Path.empty())
                 singleproxy["path"] = x.Path;
@@ -2617,8 +2639,12 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
                 addSingBoxCommonMembers(proxy, x, "onesocks", allocator);
                 proxy.AddMember("method", rapidjson::StringRef(x.EncryptMethod.c_str()), allocator);
                 proxy.AddMember("password", rapidjson::StringRef(x.Password.c_str()), allocator);
+                if (!x.UDPOverTCP.is_undef())
+                    proxy.AddMember("udp_over_tcp", x.UDPOverTCP.get(), allocator);
+                if (x.UDPOverTCPVersion > 0)
+                    proxy.AddMember("udp_over_tcp_version", x.UDPOverTCPVersion, allocator);
                 if (!x.PaddingLen.empty())
-                    proxy.AddMember("padding_len", to_int(x.PaddingLen, 0), allocator);
+                    proxy.AddMember("padding_len", rapidjson::StringRef(x.PaddingLen.c_str()), allocator);
                 if (!x.E.is_undef())
                     proxy.AddMember("e", x.E.get(), allocator);
                 if (!x.H.empty())
@@ -2627,12 +2653,22 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
             }
             case ProxyType::HeySocks:
             {
-                addSingBoxCommonMembers(proxy, x, "heysocks", allocator);
+                addSingBoxCommonMembers(proxy, x, "xhttp", allocator);
                 proxy.AddMember("method", rapidjson::StringRef(x.EncryptMethod.c_str()), allocator);
                 proxy.AddMember("password", rapidjson::StringRef(x.Password.c_str()), allocator);
+                if (!x.UDPOverTCP.is_undef())
+                    proxy.AddMember("udp_over_tcp", x.UDPOverTCP.get(), allocator);
+                proxy.AddMember("udp_over_tcp_version", x.UDPOverTCPVersion, allocator);
                 if (!x.PaddingLen.empty())
-                    proxy.AddMember("padding_len", to_int(x.PaddingLen, 0), allocator);
-                if (!x.FakeNet.empty())
+                    proxy.AddMember("padding_len", rapidjson::StringRef(x.PaddingLen.c_str()), allocator);
+                if (!x.FakeNetTCP.empty() || !x.FakeNetUDP.empty())
+                {
+                    rapidjson::Value fn(rapidjson::kObjectType);
+                    fn.AddMember("tcp", rapidjson::StringRef(x.FakeNetTCP.c_str()), allocator);
+                    fn.AddMember("udp", rapidjson::StringRef(x.FakeNetUDP.c_str()), allocator);
+                    proxy.AddMember("fake_net", fn, allocator);
+                }
+                else if (!x.FakeNet.empty())
                     proxy.AddMember("fake_net", rapidjson::StringRef(x.FakeNet.c_str()), allocator);
                 if (!x.Path.empty())
                     proxy.AddMember("path", rapidjson::StringRef(x.Path.c_str()), allocator);

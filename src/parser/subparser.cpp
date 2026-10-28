@@ -1029,8 +1029,12 @@ void explodeVless(std::string vless, Proxy &node)
 
 void explodeOneSocks(std::string onesocks, Proxy &node)
 {
-    std::string server, port, password, addition, group, remark, cipher, padding_len, e_val, h_val;
-    onesocks.erase(0, 11);
+    std::string server, port, password, addition, group, remark, cipher, padding_len, e_val, h_val, uot_val, uot_ver_val, udp_val;
+    if(startsWith(onesocks, "onesocks://"))
+        onesocks.erase(0, 11);
+    else if(startsWith(onesocks, "os://"))
+        onesocks.erase(0, 5);
+
     string_size pos = onesocks.rfind('#');
     if(pos != std::string::npos)
     {
@@ -1049,12 +1053,34 @@ void explodeOneSocks(std::string onesocks, Proxy &node)
     if(port == "0")
         return;
 
+    password = urlDecode(password);
+
     cipher = getUrlArg(addition, "cipher");
     if(cipher.empty())
         cipher = "aes-128-ctr";
-    padding_len = getUrlArg(addition, "padding_len");
+    padding_len = getUrlArg(addition, "padding");
+    if(padding_len.empty())
+        padding_len = getUrlArg(addition, "padding_len");
     if(padding_len.empty())
         padding_len = getUrlArg(addition, "padding-len");
+
+    uot_val = getUrlArg(addition, "uot");
+    if(uot_val.empty())
+        uot_val = getUrlArg(addition, "udp-over-tcp");
+    if(!uot_val.empty())
+        node.UDPOverTCP = (uot_val == "1" || uot_val == "true");
+
+    uot_ver_val = getUrlArg(addition, "uot-version");
+    if(uot_ver_val.empty())
+        uot_ver_val = getUrlArg(addition, "udp-over-tcp-version");
+    if(!uot_ver_val.empty())
+        node.UDPOverTCPVersion = to_int(uot_ver_val, 0);
+
+    udp_val = getUrlArg(addition, "udp");
+    if(!udp_val.empty())
+        node.UDP = (udp_val == "1" || udp_val == "true");
+    else
+        node.UDP = true;
 
     e_val = getUrlArg(addition, "e");
     h_val = getUrlArg(addition, "h");
@@ -1076,7 +1102,13 @@ void explodeOneSocks(std::string onesocks, Proxy &node)
 void explodeHeySocks(std::string heysocks, Proxy &node)
 {
     std::string server, port, password, addition, group, remark, cipher, padding_len, fake_net, path, e_val, h_val;
-    heysocks.erase(0, 11);
+    std::string fake_tcp, fake_udp, uot_val, uot_ver_val, udp_val;
+
+    if(startsWith(heysocks, "heysocks://"))
+        heysocks.erase(0, 11);
+    else if(startsWith(heysocks, "xhttp://"))
+        heysocks.erase(0, 8);
+
     string_size pos = heysocks.rfind('#');
     if(pos != std::string::npos)
     {
@@ -1095,11 +1127,41 @@ void explodeHeySocks(std::string heysocks, Proxy &node)
     if(port == "0")
         return;
 
+    password = urlDecode(password);
+
     cipher = getUrlArg(addition, "cipher");
     if(cipher.empty())
         cipher = "aes-128-ctr";
-    padding_len = getUrlArg(addition, "padding_len");
+    padding_len = getUrlArg(addition, "padding");
+    if(padding_len.empty())
+        padding_len = getUrlArg(addition, "padding_len");
+    if(padding_len.empty())
+        padding_len = getUrlArg(addition, "padding-len");
+
+    fake_tcp = getUrlArg(addition, "fake-tcp");
+    fake_udp = getUrlArg(addition, "fake-udp");
     fake_net = getUrlArg(addition, "fake_net");
+    if(fake_net.empty())
+        fake_net = getUrlArg(addition, "fake-net");
+
+    uot_val = getUrlArg(addition, "uot");
+    if(uot_val.empty())
+        uot_val = getUrlArg(addition, "udp-over-tcp");
+    if(!uot_val.empty())
+        node.UDPOverTCP = (uot_val == "1" || uot_val == "true");
+
+    uot_ver_val = getUrlArg(addition, "uot-version");
+    if(uot_ver_val.empty())
+        uot_ver_val = getUrlArg(addition, "udp-over-tcp-version");
+    if(!uot_ver_val.empty())
+        node.UDPOverTCPVersion = to_int(uot_ver_val, 0);
+
+    udp_val = getUrlArg(addition, "udp");
+    if(!udp_val.empty())
+        node.UDP = (udp_val == "1" || udp_val == "true");
+    else
+        node.UDP = true;
+
     path = urlDecode(getUrlArg(addition, "path"));
     e_val = getUrlArg(addition, "e");
     h_val = getUrlArg(addition, "h");
@@ -1113,6 +1175,8 @@ void explodeHeySocks(std::string heysocks, Proxy &node)
     node.EncryptMethod = cipher;
     node.PaddingLen = padding_len;
     node.FakeNet = fake_net;
+    node.FakeNetTCP = fake_tcp;
+    node.FakeNetUDP = fake_udp;
     node.Path = path;
     if(!e_val.empty())
         node.E = (e_val == "1" || e_val == "true");
@@ -1659,6 +1723,7 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
                 node.E = (e_val == "1" || e_val == "true");
             node.H = h_val;
             break;
+        case "os"_hash:
         case "onesocks"_hash:
             group = ONESOCKS_DEFAULT_GROUP;
             padding_len.clear(); e_val.clear(); h_val.clear(); cipher.clear(); password.clear();
@@ -1683,10 +1748,19 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
             node.TCPFastOpen = tfo;
             node.AllowInsecure = scv;
             node.Group = group;
+            if(singleproxy["udp-over-tcp"].IsDefined())
+                node.UDPOverTCP = singleproxy["udp-over-tcp"].as<bool>();
+            else if(singleproxy["uot"].IsDefined())
+                node.UDPOverTCP = singleproxy["uot"].as<bool>();
+            if(singleproxy["udp-over-tcp-version"].IsDefined())
+                node.UDPOverTCPVersion = singleproxy["udp-over-tcp-version"].as<uint32_t>();
+            else if(singleproxy["uot-version"].IsDefined())
+                node.UDPOverTCPVersion = singleproxy["uot-version"].as<uint32_t>();
             if(!e_val.empty())
                 node.E = (e_val == "1" || e_val == "true");
             node.H = h_val;
             break;
+        case "xhttp"_hash:
         case "heysocks"_hash:
             group = HEYSOCKS_DEFAULT_GROUP;
             padding_len.clear(); fake_net.clear(); path.clear(); e_val.clear(); h_val.clear(); cipher.clear(); password.clear();
@@ -1695,9 +1769,17 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
             singleproxy["padding-len"] >>= padding_len;
             if(padding_len.empty())
                 singleproxy["padding_len"] >>= padding_len;
-            singleproxy["fake-net"] >>= fake_net;
-            if(fake_net.empty())
-                singleproxy["fake_net"] >>= fake_net;
+            if(singleproxy["fake-net"].IsMap())
+            {
+                singleproxy["fake-net"]["tcp"] >>= node.FakeNetTCP;
+                singleproxy["fake-net"]["udp"] >>= node.FakeNetUDP;
+            }
+            else
+            {
+                singleproxy["fake-net"] >>= fake_net;
+                if(fake_net.empty())
+                    singleproxy["fake_net"] >>= fake_net;
+            }
             singleproxy["path"] >>= path;
             if(singleproxy["e"].IsDefined())
                 singleproxy["e"] >>= e_val;
@@ -1717,6 +1799,14 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
             node.TCPFastOpen = tfo;
             node.AllowInsecure = scv;
             node.Group = group;
+            if(singleproxy["udp-over-tcp"].IsDefined())
+                node.UDPOverTCP = singleproxy["udp-over-tcp"].as<bool>();
+            else if(singleproxy["uot"].IsDefined())
+                node.UDPOverTCP = singleproxy["uot"].as<bool>();
+            if(singleproxy["udp-over-tcp-version"].IsDefined())
+                node.UDPOverTCPVersion = singleproxy["udp-over-tcp-version"].as<uint32_t>();
+            else if(singleproxy["uot-version"].IsDefined())
+                node.UDPOverTCPVersion = singleproxy["uot-version"].as<uint32_t>();
             if(!e_val.empty())
                 node.E = (e_val == "1" || e_val == "true");
             node.H = h_val;
@@ -2921,9 +3011,9 @@ void explode(const std::string &link, Proxy &node)
         explodeAnyTLS(link, node);
     else if(startsWith(link, "vless://"))
         explodeVless(link, node);
-    else if(startsWith(link, "onesocks://"))
+    else if(startsWith(link, "onesocks://") || startsWith(link, "os://"))
         explodeOneSocks(link, node);
-    else if(startsWith(link, "heysocks://"))
+    else if(startsWith(link, "heysocks://") || startsWith(link, "xhttp://"))
         explodeHeySocks(link, node);
     else if(isLink(link))
         explodeHTTPSub(link, node);
@@ -2972,7 +3062,20 @@ void explodeSub(std::string sub, std::vector<Proxy> &nodes)
     //try to parse as normal subscription
     if(!processed)
     {
-        sub = urlSafeBase64Decode(sub);
+        std::string decoded = urlSafeBase64Decode(sub);
+        if(regFind(decoded, "(?:vmess|vless|ss|ssr|trojan|hysteria|hy2|anytls|onesocks|os|heysocks|xhttp)://") ||
+           regFind(decoded, "(?:vmess|shadowsocks|http|trojan)\\s*?="))
+        {
+            sub = decoded;
+        }
+        else if(regFind(sub, "(?:vmess|vless|ss|ssr|trojan|hysteria|hy2|anytls|onesocks|os|heysocks|xhttp)://"))
+        {
+            // raw plain text subscription, keep sub
+        }
+        else
+        {
+            sub = decoded;
+        }
         if(regFind(sub, "(vmess|shadowsocks|http|trojan)\\s*?="))
         {
             if(explodeSurge(sub, nodes))
