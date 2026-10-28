@@ -1,52 +1,67 @@
 ; =====================================================================
-; Subconverter Rulesets Mapping (对接到 MetaCubeX 官方开源公共源)
+; Subconverter Rulesets Mapping (现代标准分流规则)
 ; =====================================================================
 
-; 本地/通用直连
+; 本地局域网
 🎯 国内直连,rules/LocalAreaNetwork.list
 
 ; 广告与隐私拦截
-🛑 广告拦截,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ads-all.list,86400
+🛑 广告拦截,[]GEOSITE,category-ads-all
+🕵️ 跟踪保护,[]GEOSITE,privacy
 
 ; AI 平台
-🤖 AI,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/openai.list,86400
-🤖 AI,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/anthropic.list,86400
+🤖 AI,[]GEOSITE,openai
+🤖 AI,[]GEOSITE,anthropic
+🤖 AI,[]GEOSITE,claude
 
 ; 流媒体与视频
-▶️ YouTube,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.list,86400
-🍿 Netflix,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/netflix.list,86400
-🍿 Netflix,clash-ipcidr:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/netflix.list,86400
-🎵 Spotify,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/spotify.list,86400
-📺 流媒体,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/disney.list,86400
-📺 流媒体,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/biliintl.list,86400
-📺 流媒体,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/bahamut.list,86400
+▶️ YouTube,[]GEOSITE,youtube
+🍿 Netflix,[]GEOSITE,netflix
+🍿 Netflix,[]GEOIP,netflix,no-resolve
+🎵 Spotify,[]GEOSITE,spotify
+📺 流媒体,[]GEOSITE,disney
+📺 流媒体,[]GEOSITE,bilibili
+📺 流媒体,[]GEOSITE,bahamut
+📺 流媒体,[]GEOSITE,hbo
+📺 流媒体,[]GEOSITE,primevideo
 
 ; 社交通讯
-💬 Telegram,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.list,86400
-💬 Telegram,clash-ipcidr:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.list,86400
-🌐 社交媒体,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/twitter.list,86400
-🌐 社交媒体,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/facebook.list,86400
-🌐 社交媒体,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/discord.list,86400
+💬 Telegram,[]GEOSITE,telegram
+💬 Telegram,[]GEOIP,telegram,no-resolve
+🌐 社交媒体,[]GEOSITE,twitter
+🌐 社交媒体,[]GEOSITE,facebook
+🌐 社交媒体,[]GEOSITE,instagram
+🌐 社交媒体,[]GEOSITE,discord
+🌐 社交媒体,[]GEOSITE,reddit
 
 ; 开发者与云服务
-💻 GitHub,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/github.list,86400
-🔎 Google,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.list,86400
-🪟 Microsoft,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.list,86400
-🍎 Apple,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple.list,86400
-☁️ Cloudflare,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cloudflare.list,86400
+💻 GitHub,[]GEOSITE,github
+🔎 Google,[]GEOSITE,google
+🪟 Microsoft,[]GEOSITE,microsoft
+🍎 Apple,[]GEOSITE,apple
+☁️ Cloudflare,[]GEOSITE,cloudflare
 
-; 游戏平台与下载
-🎮 Steam,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/steam.list,86400
-🎮 游戏,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/epicgames.list,86400
-🎮 游戏,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-games-!cn.list,86400
-⬇️ 游戏下载,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-game-platforms-download.list,86400
+; 游戏相关
+🎮 Steam,[]GEOSITE,steam
+🎮 游戏,[]GEOSITE,epicgames
+🎮 游戏,[]GEOSITE,ea
+🎮 游戏,[]GEOSITE,blizzard
+🎮 游戏,[]GEOSITE,category-games-!cn
+⬇️ 游戏下载,[]GEOSITE,category-game-platforms-download
+
+; 专业领域与BT
+🧲 BT/PT,[]GEOSITE,category-pt
+📚 学术科研,[]GEOSITE,category-scholar-!cn
+💰 金融支付,[]GEOSITE,paypal
+💰 金融支付,[]GEOSITE,stripe
+
+; 海外 GFW 与国外代理
+🌍 国外代理,[]GEOSITE,gfw
+🌍 国外代理,[]GEOSITE,geolocation-!cn
 
 ; 国内直连
-🎯 国内直连,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.list,86400
-🎯 国内直连,clash-ipcidr:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.list,86400
+🎯 国内直连,[]GEOSITE,cn
 🎯 国内直连,[]GEOIP,CN
 
-; 海外 GFW 与漏网之鱼
-🌍 国外代理,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/gfw.list,86400
-🌍 国外代理,clash-classic:https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.list,86400
+; 漏网之鱼
 🐟 漏网之鱼,[]FINAL

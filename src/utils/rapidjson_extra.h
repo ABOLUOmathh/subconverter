@@ -16,6 +16,7 @@ template <typename T> void exception_thrower(T e, const std::string &cond, const
 #define RAPIDJSON_ASSERT(x) exception_thrower(x, VALUE(x), __FILE__, __LINE__)
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
+#include <rapidjson/prettywriter.h>
 #include <rapidjson/error/en.h>
 #include <string>
 
@@ -171,6 +172,17 @@ namespace rapidjson_ext {
         {
             rapidjson::StringBuffer buffer;
             rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+            root.Accept(writer);
+            return buffer.GetString();
+        }
+    };
+
+    struct PrettySerializeObject : public ExtensionFunction<std::string> {
+        inline std::string operator() (rapidjson::Value &root) const override
+        {
+            rapidjson::StringBuffer buffer;
+            rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+            writer.SetIndent(' ', 2);
             root.Accept(writer);
             return buffer.GetString();
         }

@@ -10,7 +10,7 @@
 
 /// rule type lists
 #define basic_types "DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "IP-CIDR", "SRC-IP-CIDR", "GEOIP", "MATCH", "FINAL"
-string_array ClashRuleTypes = {basic_types, "IP-CIDR6", "SRC-PORT", "DST-PORT", "PROCESS-NAME"};
+string_array ClashRuleTypes = {basic_types, "IP-CIDR6", "SRC-PORT", "DST-PORT", "PROCESS-NAME", "GEOSITE", "RULE-SET", "AND", "OR", "NOT", "IP-ASN", "SRC-IP-ASN"};
 string_array Surge2RuleTypes = {basic_types, "IP-CIDR6", "USER-AGENT", "URL-REGEX", "PROCESS-NAME", "IN-PORT", "DEST-PORT", "SRC-IP"};
 string_array SurgeRuleTypes = {basic_types, "IP-CIDR6", "USER-AGENT", "URL-REGEX", "AND", "OR", "NOT", "PROCESS-NAME", "IN-PORT", "DEST-PORT", "SRC-IP"};
 string_array QuanXRuleTypes = {basic_types, "USER-AGENT", "HOST", "HOST-SUFFIX", "HOST-KEYWORD"};
@@ -490,7 +490,9 @@ static rapidjson::Value transformRuleToSingBox(std::vector<std::string_view> &ar
     }
     else
     {
-        rule_obj.AddMember(rapidjson::Value(type.c_str(), allocator), rapidjson::Value(value.data(), value.size(), allocator), allocator);
+        rapidjson::Value arr(rapidjson::kArrayType);
+        arr.PushBack(rapidjson::Value(value.c_str(), allocator), allocator);
+        rule_obj.AddMember(rapidjson::Value(type.c_str(), allocator), arr, allocator);
         rule_obj.AddMember("outbound", rapidjson::Value(group.c_str(), allocator), allocator);
     }
     return rule_obj;

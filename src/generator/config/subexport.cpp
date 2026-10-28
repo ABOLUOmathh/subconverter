@@ -2838,9 +2838,9 @@ std::string proxyToSingBox(std::vector<Proxy> &nodes, const std::string &base_co
     proxyToSingBox(nodes, json, ruleset_content_array, extra_proxy_group, ext);
 
     if(ext.nodelist || !ext.enable_rule_generator)
-        return json | SerializeObject();
+        return json | PrettySerializeObject();
 
     rulesetToSingBox(json, ruleset_content_array, ext.overwrite_original_rules);
 
-    return json | SerializeObject();
+    return json | PrettySerializeObject();
 }
