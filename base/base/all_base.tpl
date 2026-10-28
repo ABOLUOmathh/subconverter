@@ -638,7 +638,8 @@ enhanced-mode-by-rule = true
                 "tag": "dns_proxy",
                 "type": "tls",
                 "server": "1.1.1.1",
-                "domain_resolver": "dns_resolver"
+                "domain_resolver": "dns_resolver",
+                "detour": "🚀 节点选择"
             },
             {
                 "tag": "dns_direct",
@@ -728,6 +729,7 @@ enhanced-mode-by-rule = true
     "route": {
         "default_domain_resolver": "dns_resolver",
         "default_http_client": "direct-http",
+        "final": "🐟 漏网之鱼",
         "rule_set": [
             {
                 "tag": "geosite-category-ads-all",

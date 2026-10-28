@@ -612,6 +612,13 @@ void rulesetToSingBox(rapidjson::Document &base_rule, std::vector<RulesetContent
     if (!base_rule["route"].HasMember("default_domain_resolver"))
         base_rule["route"].AddMember("default_domain_resolver", "dns_resolver", allocator);
 
+    if (final.empty())
+    {
+        if (base_rule["route"].HasMember("final") && !base_rule["route"]["final"].GetStringLength() == 0)
+            final = base_rule["route"]["final"].GetString();
+        else
+            final = "🐟 漏网之鱼";
+    }
     auto finalValue = rapidjson::Value(final.c_str(), allocator);
     base_rule["route"]
     | AddMemberOrReplace("rules", rules, allocator)
