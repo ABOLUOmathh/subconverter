@@ -517,8 +517,12 @@ void explodeSS(std::string ss, Proxy &node)
     {
         if(regGetMatch(ss, "(\\S+?)@(\\S+):(\\d+)", 4, 0, &secret, &server, &port))
             return;
-        if(regGetMatch(urlSafeBase64Decode(secret), "(\\S+?):(\\S+)", 3, 0, &method, &password))
-            return;
+        std::string decoded_secret = urlSafeBase64Decode(secret);
+        if(regGetMatch(decoded_secret, "([^:]+?):(.*)", 3, 0, &method, &password))
+        {
+            if(regGetMatch(secret, "([^:]+?):(.*)", 3, 0, &method, &password))
+                return;
+        }
     }
     else
     {
