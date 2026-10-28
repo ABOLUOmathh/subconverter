@@ -511,6 +511,12 @@ void explodeSS(std::string ss, Proxy &node)
         group = getUrlArg(addition, "group");
         if(!group.empty())
             group = urlSafeBase64Decode(group);
+        std::string uot_val = getUrlArg(addition, "uot");
+        if(uot_val.empty())
+            uot_val = getUrlArg(addition, "udp-over-tcp");
+        std::string uot_ver = getUrlArg(addition, "uot-version");
+        if(uot_ver.empty())
+            uot_ver = getUrlArg(addition, "udp-over-tcp-version");
         ss.erase(ss.find('?'));
     }
     if(strFind(ss, "@"))
@@ -534,7 +540,25 @@ void explodeSS(std::string ss, Proxy &node)
     if(ps.empty())
         ps = server + ":" + port;
 
+    password = urlDecode(password);
     ssConstruct(node, group, ps, server, port, password, method, plugin, pluginopts);
+    std::string uot_val_check = getUrlArg(addition, "uot");
+    if(uot_val_check.empty())
+        uot_val_check = getUrlArg(addition, "udp-over-tcp");
+    std::string uot_ver_check = getUrlArg(addition, "uot-version");
+    if(uot_ver_check.empty())
+        uot_ver_check = getUrlArg(addition, "udp-over-tcp-version");
+    if(!uot_val_check.empty())
+        node.UDPOverTCP = (uot_val_check == "1" || uot_val_check == "true");
+    if(!uot_ver_check.empty())
+        node.UDPOverTCPVersion = to_int(uot_ver_check, 1);
+    else if(node.UDPOverTCP.is_true())
+        node.UDPOverTCPVersion = 1;
+    if(node.UDPOverTCP.is_undef() && strFind(node.Password, "#BLACKSTONE"))
+    {
+        node.UDPOverTCP = true;
+        node.UDPOverTCPVersion = 1;
+    }
 }
 
 void explodeSSD(std::string link, std::vector<Proxy> &nodes)
@@ -1410,6 +1434,19 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
             }
 
             ssConstruct(node, group, ps, server, port, password, cipher, plugin, pluginopts, udp, tfo, scv,  tribool(), underlying_proxy);
+            if(singleproxy["udp-over-tcp"].IsDefined())
+                node.UDPOverTCP = safe_as<std::string>(singleproxy["udp-over-tcp"]) == "true";
+            else if(singleproxy["uot"].IsDefined())
+                node.UDPOverTCP = safe_as<std::string>(singleproxy["uot"]) == "true";
+            if(singleproxy["udp-over-tcp-version"].IsDefined())
+                node.UDPOverTCPVersion = to_int(safe_as<std::string>(singleproxy["udp-over-tcp-version"]), 1);
+            else if(node.UDPOverTCP.is_true())
+                node.UDPOverTCPVersion = 1;
+            if(node.UDPOverTCP.is_undef() && strFind(node.Password, "#BLACKSTONE"))
+            {
+                node.UDPOverTCP = true;
+                node.UDPOverTCPVersion = 1;
+            }
             break;
         case "socks5"_hash:
             group = SOCKS_DEFAULT_GROUP;

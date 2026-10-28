@@ -292,6 +292,11 @@ void proxyToClash(std::vector<Proxy> &nodes, YAML::Node &yamlnode, const ProxyGr
             singleproxy["password"] = x.Password;
             if(std::all_of(x.Password.begin(), x.Password.end(), ::isdigit) && !x.Password.empty())
                 singleproxy["password"].SetTag("str");
+            if(!x.UDPOverTCP.is_undef() && x.UDPOverTCP.get())
+            {
+                singleproxy["udp-over-tcp"] = true;
+                singleproxy["udp-over-tcp-version"] = (x.UDPOverTCPVersion == 0 ? 1 : x.UDPOverTCPVersion);
+            }
             switch(hash_(x.Plugin))
             {
             case "simple-obfs"_hash:
@@ -2431,6 +2436,12 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
                 addSingBoxCommonMembers(proxy, x, "shadowsocks", allocator);
                 proxy.AddMember("method", rapidjson::StringRef(x.EncryptMethod.c_str()), allocator);
                 proxy.AddMember("password", rapidjson::StringRef(x.Password.c_str()), allocator);
+                if (!x.UDPOverTCP.is_undef() && x.UDPOverTCP.get())
+                {
+                    proxy.AddMember("udp_over_tcp", true, allocator);
+                    if (x.UDPOverTCPVersion != 0)
+                        proxy.AddMember("udp_over_tcp_version", x.UDPOverTCPVersion, allocator);
+                }
                 if(!x.Plugin.empty() && !x.PluginOption.empty())
                 {
                     if (x.Plugin == "simple-obfs")

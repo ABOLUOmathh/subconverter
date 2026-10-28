@@ -140,7 +140,7 @@ struct Proxy
 
     uint32_t CWND = 0;
 
-    // Custom protocols extensions (OneSocks, HeySocks, VLESS-EH)
+    // Custom protocols extensions (OneSocks, HeySocks, VLESS-EH, BLACKSTONE UOT)
     String PaddingLen;
     tribool E;
     String H;
@@ -148,6 +148,8 @@ struct Proxy
     String RealityPublicKey;
     String RealityShortId;
     String FakeNet;
+    tribool UDPOverTCP;
+    uint32_t UDPOverTCPVersion = 0;
 };
 
 #define SS_DEFAULT_GROUP "SSProvider"
