@@ -731,13 +731,6 @@ enhanced-mode-by-rule = true
                 "download_detour": "DIRECT"
             },
             {
-                "tag": "geosite-privacy",
-                "type": "remote",
-                "format": "binary",
-                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-privacy.srs",
-                "download_detour": "DIRECT"
-            },
-            {
                 "tag": "geosite-openai",
                 "type": "remote",
                 "format": "binary",
@@ -834,20 +827,6 @@ enhanced-mode-by-rule = true
                 "format": "binary",
                 "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
                 "download_detour": "DIRECT"
-            },
-            {
-                "tag": "geoip-telegram",
-                "type": "remote",
-                "format": "binary",
-                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-telegram.srs",
-                "download_detour": "DIRECT"
-            },
-            {
-                "tag": "geoip-netflix",
-                "type": "remote",
-                "format": "binary",
-                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-netflix.srs",
-                "download_detour": "DIRECT"
             }
         ],
         "rules": [
@@ -920,10 +899,6 @@ enhanced-mode-by-rule = true
                 "outbound": "🛑 广告拦截"
             },
             {
-                "rule_set": "geosite-privacy",
-                "outbound": "🛡️ 隐私防护"
-            },
-            {
                 "rule_set": "geosite-openai",
                 "outbound": "💬 Ai平台"
             },
@@ -936,15 +911,20 @@ enhanced-mode-by-rule = true
                 "outbound": "🎥 奈飞视频"
             },
             {
-                "rule_set": "geoip-netflix",
-                "outbound": "🎥 奈飞视频"
-            },
-            {
                 "rule_set": "geosite-telegram",
                 "outbound": "📲 电报消息"
             },
             {
-                "rule_set": "geoip-telegram",
+                "ip_cidr": [
+                    "91.108.4.0/22",
+                    "91.108.8.0/22",
+                    "91.108.12.0/22",
+                    "91.108.16.0/22",
+                    "91.108.20.0/22",
+                    "91.108.56.0/22",
+                    "149.154.160.0/20",
+                    "185.76.151.0/24"
+                ],
                 "outbound": "📲 电报消息"
             },
             {
