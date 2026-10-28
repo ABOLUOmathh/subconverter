@@ -16,8 +16,7 @@
                 "tag": "dns_direct",
                 "type": "https",
                 "server": "223.5.5.5",
-                "domain_resolver": "dns_resolver",
-                "detour": "DIRECT"
+                "domain_resolver": "dns_resolver"
             },
             {
                 "tag": "dns_fakeip",
@@ -28,8 +27,7 @@
             {
                 "tag": "dns_resolver",
                 "type": "udp",
-                "server": "223.5.5.5",
-                "detour": "DIRECT"
+                "server": "223.5.5.5"
             }
         ],
         "rules": [
@@ -64,8 +62,7 @@
         "enabled": true,
         "server": "time.apple.com",
         "server_port": 123,
-        "interval": "30m",
-        "detour": "DIRECT"
+        "interval": "30m"
     },
     "inbounds": [
         {

@@ -46,11 +46,19 @@ dns:
     - 223.5.5.5
     - 119.29.29.29
   nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
     - https://doh.pub/dns-query
     - https://dns.alidns.com/dns-query
+  direct-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+  direct-nameserver-follow-policy: false
   fallback:
-    - https://1.1.1.1/dns-query
-    - https://dns.google/dns-query
+    - "https://1.1.1.1/dns-query#🚀 节点选择"
+    - "https://8.8.8.8/dns-query#🚀 节点选择"
   fallback-filter:
     geoip: true
     geoip-code: CN
@@ -635,8 +643,7 @@ enhanced-mode-by-rule = true
                 "tag": "dns_direct",
                 "type": "https",
                 "server": "223.5.5.5",
-                "domain_resolver": "dns_resolver",
-                "detour": "DIRECT"
+                "domain_resolver": "dns_resolver"
             },
             {
                 "tag": "dns_fakeip",
@@ -649,8 +656,7 @@ enhanced-mode-by-rule = true
             {
                 "tag": "dns_resolver",
                 "type": "udp",
-                "server": "223.5.5.5",
-                "detour": "DIRECT"
+                "server": "223.5.5.5"
             }
         ],
         "rules": [
@@ -685,8 +691,7 @@ enhanced-mode-by-rule = true
         "enabled": true,
         "server": "time.apple.com",
         "server_port": 123,
-        "interval": "30m",
-        "detour": "DIRECT"
+        "interval": "30m"
     },
     "inbounds": [
         {
