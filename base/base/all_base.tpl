@@ -1,25 +1,342 @@
 {% if request.target == "clash" or request.target == "clashr" %}
 
-port: {{ default(global.clash.http_port, "7890") }}
-socks-port: {{ default(global.clash.socks_port, "7891") }}
-allow-lan: {{ default(global.clash.allow_lan, "true") }}
-mode: Rule
-log-level: {{ default(global.clash.log_level, "info") }}
-external-controller: {{ default(global.clash.external_controller, "127.0.0.1:9090") }}
-{% if default(request.clash.dns, "") == "1" %}
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: info
+unified-delay: true
+tcp-concurrent: true
+keep-alive-interval: 30
+profile:
+  store-selected: true
+  store-fake-ip: true
 dns:
   enable: true
-  listen: :1053
-{% endif %}
-{% if local.clash.new_field_name == "true" %}
+  listen: 0.0.0.0:1053
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - "*.lan"
+    - "*.local"
+    - "*.localhost"
+    - "*.localdomain"
+    - "*.example"
+    - "*.invalid"
+    - "*.test"
+    - "*.home.arpa"
+    - "*.msftconnecttest.com"
+    - "*.msftncsi.com"
+    - "time.windows.com"
+    - "time.nist.gov"
+    - "time.apple.com"
+    - "time.asia.apple.com"
+    - "time1.cloud.tencent.com"
+    - "*.ntp.org"
+    - "*.pool.ntp.org"
+    - "ntp.*.com"
+    - "+.market.xiaomi.com"
+    - "localhost.ptlogin2.qq.com"
+    - "localhost.work.weixin.qq.com"
+    - "*.srv.nintendo.net"
+    - "*.stun.playstation.net"
+    - "xbox.*.microsoft.com"
+    - "*.xboxlive.com"
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver:
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+  fallback:
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    ipcidr:
+      - 240.0.0.0/4
+
 proxies: ~
 proxy-groups: ~
-rules: ~
-{% else %}
-Proxy: ~
-Proxy Group: ~
-Rule: ~
-{% endif %}
+
+rule-providers:
+  LocalAreaNetwork:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list"
+    path: ./ruleset/LocalAreaNetwork.list
+    interval: 86400
+  UnBan:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/UnBan.list"
+    path: ./ruleset/UnBan.list
+    interval: 86400
+  BanAD:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanAD.list"
+    path: ./ruleset/BanAD.list
+    interval: 86400
+  BanProgramAD:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanProgramAD.list"
+    path: ./ruleset/BanProgramAD.list
+    interval: 86400
+  BanEasyList:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyList.list"
+    path: ./ruleset/BanEasyList.list
+    interval: 86400
+  BanEasyListChina:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyListChina.list"
+    path: ./ruleset/BanEasyListChina.list
+    interval: 86400
+  BanEasyPrivacy:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyPrivacy.list"
+    path: ./ruleset/BanEasyPrivacy.list
+    interval: 86400
+  GoogleFCM:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/GoogleFCM.list"
+    path: ./ruleset/GoogleFCM.list
+    interval: 86400
+  GoogleCN:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/GoogleCN.list"
+    path: ./ruleset/GoogleCN.list
+    interval: 86400
+  SteamCN:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/SteamCN.list"
+    path: ./ruleset/SteamCN.list
+    interval: 86400
+  Bing:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Bing.list"
+    path: ./ruleset/Bing.list
+    interval: 86400
+  OneDrive:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/OneDrive.list"
+    path: ./ruleset/OneDrive.list
+    interval: 86400
+  Microsoft:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Microsoft.list"
+    path: ./ruleset/Microsoft.list
+    interval: 86400
+  Apple:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Apple.list"
+    path: ./ruleset/Apple.list
+    interval: 86400
+  Telegram:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Telegram.list"
+    path: ./ruleset/Telegram.list
+    interval: 86400
+  AI:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/AI.list"
+    path: ./ruleset/AI.list
+    interval: 86400
+  OpenAi:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/OpenAi.list"
+    path: ./ruleset/OpenAi.list
+    interval: 86400
+  NetEaseMusic:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/NetEaseMusic.list"
+    path: ./ruleset/NetEaseMusic.list
+    interval: 86400
+  Epic:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Epic.list"
+    path: ./ruleset/Epic.list
+    interval: 86400
+  Origin:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Origin.list"
+    path: ./ruleset/Origin.list
+    interval: 86400
+  Sony:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Sony.list"
+    path: ./ruleset/Sony.list
+    interval: 86400
+  Steam:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Steam.list"
+    path: ./ruleset/Steam.list
+    interval: 86400
+  Nintendo:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Nintendo.list"
+    path: ./ruleset/Nintendo.list
+    interval: 86400
+  YouTube:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list"
+    path: ./ruleset/YouTube.list
+    interval: 86400
+  Netflix:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Netflix.list"
+    path: ./ruleset/Netflix.list
+    interval: 86400
+  Bahamut:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bahamut.list"
+    path: ./ruleset/Bahamut.list
+    interval: 86400
+  BilibiliHMT:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/BilibiliHMT.list"
+    path: ./ruleset/BilibiliHMT.list
+    interval: 86400
+  Bilibili:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bilibili.list"
+    path: ./ruleset/Bilibili.list
+    interval: 86400
+  ChinaMedia:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaMedia.list"
+    path: ./ruleset/ChinaMedia.list
+    interval: 86400
+  ProxyMedia:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyMedia.list"
+    path: ./ruleset/ProxyMedia.list
+    interval: 86400
+  ProxyGFWlist:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list"
+    path: ./ruleset/ProxyGFWlist.list
+    interval: 86400
+  ChinaDomain:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list"
+    path: ./ruleset/ChinaDomain.list
+    interval: 86400
+  ChinaCompanyIp:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp.list"
+    path: ./ruleset/ChinaCompanyIp.list
+    interval: 86400
+  Download:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list"
+    path: ./ruleset/Download.list
+    interval: 86400
+
+rules:
+  - "RULE-SET,LocalAreaNetwork,🎯 全球直连"
+  - "RULE-SET,UnBan,🎯 全球直连"
+  - "RULE-SET,BanAD,🛑 广告拦截"
+  - "RULE-SET,BanProgramAD,🍃 应用净化"
+  - "RULE-SET,BanEasyList,🆎 AdBlock"
+  - "RULE-SET,BanEasyListChina,🆎 AdBlock"
+  - "RULE-SET,BanEasyPrivacy,🛡️ 隐私防护"
+  - "RULE-SET,GoogleFCM,📢 谷歌FCM"
+  - "RULE-SET,GoogleCN,🎯 全球直连"
+  - "RULE-SET,SteamCN,🎯 全球直连"
+  - "RULE-SET,Bing,Ⓜ️ 微软Bing"
+  - "RULE-SET,OneDrive,Ⓜ️ 微软云盘"
+  - "RULE-SET,Microsoft,Ⓜ️ 微软服务"
+  - "RULE-SET,Apple,🍎 苹果服务"
+  - "RULE-SET,Telegram,📲 电报消息"
+  - "RULE-SET,AI,💬 Ai平台"
+  - "RULE-SET,OpenAi,💬 Ai平台"
+  - "RULE-SET,NetEaseMusic,🎶 网易音乐"
+  - "RULE-SET,Epic,🎮 游戏平台"
+  - "RULE-SET,Origin,🎮 游戏平台"
+  - "RULE-SET,Sony,🎮 游戏平台"
+  - "RULE-SET,Steam,🎮 游戏平台"
+  - "RULE-SET,Nintendo,🎮 游戏平台"
+  - "RULE-SET,YouTube,📹 油管视频"
+  - "RULE-SET,Netflix,🎥 奈飞视频"
+  - "RULE-SET,Bahamut,📺 巴哈姆特"
+  - "RULE-SET,BilibiliHMT,📺 哔哩哔哩"
+  - "RULE-SET,Bilibili,📺 哔哩哔哩"
+  - "RULE-SET,ChinaMedia,🌏 国内媒体"
+  - "RULE-SET,ProxyMedia,🌍 国外媒体"
+  - "RULE-SET,ProxyGFWlist,🚀 节点选择"
+  - "RULE-SET,ChinaDomain,🎯 全球直连"
+  - "RULE-SET,ChinaCompanyIp,🎯 全球直连"
+  - "RULE-SET,Download,🎯 全球直连"
+  - "GEOIP,CN,🎯 全球直连"
+  - "MATCH,🐟 漏网之鱼"
 
 {% endif %}
 {% if request.target == "surge" %}
@@ -375,7 +692,135 @@ enhanced-mode-by-rule = true
     ],
     "outbounds": [],
     "route": {
-        "rules": [],
+        "rules": [
+            {
+                "domain_suffix": [
+                    "local"
+                ],
+                "ip_cidr": [
+                    "192.168.0.0/16",
+                    "10.0.0.0/8",
+                    "172.16.0.0/12",
+                    "127.0.0.0/8",
+                    "100.64.0.0/10"
+                ],
+                "outbound": "🎯 全球直连"
+            },
+            {
+                "geosite": [
+                    "category-ads-all"
+                ],
+                "outbound": "🛑 广告拦截"
+            },
+            {
+                "geosite": [
+                    "privacy"
+                ],
+                "outbound": "🛡️ 隐私防护"
+            },
+            {
+                "geosite": [
+                    "openai",
+                    "anthropic",
+                    "claude"
+                ],
+                "outbound": "💬 Ai平台"
+            },
+            {
+                "geosite": [
+                    "youtube"
+                ],
+                "outbound": "📹 油管视频"
+            },
+            {
+                "geosite": [
+                    "netflix"
+                ],
+                "outbound": "🎥 奈飞视频"
+            },
+            {
+                "geoip": [
+                    "netflix"
+                ],
+                "outbound": "🎥 奈飞视频"
+            },
+            {
+                "geosite": [
+                    "telegram"
+                ],
+                "outbound": "📲 电报消息"
+            },
+            {
+                "geoip": [
+                    "telegram"
+                ],
+                "outbound": "📲 电报消息"
+            },
+            {
+                "geosite": [
+                    "bilibili"
+                ],
+                "outbound": "📺 哔哩哔哩"
+            },
+            {
+                "geosite": [
+                    "bahamut"
+                ],
+                "outbound": "📺 巴哈姆特"
+            },
+            {
+                "geosite": [
+                    "steam",
+                    "epicgames",
+                    "ea",
+                    "blizzard"
+                ],
+                "outbound": "🎮 游戏平台"
+            },
+            {
+                "geosite": [
+                    "netease"
+                ],
+                "outbound": "🎶 网易音乐"
+            },
+            {
+                "geosite": [
+                    "google"
+                ],
+                "outbound": "📢 谷歌FCM"
+            },
+            {
+                "geosite": [
+                    "microsoft"
+                ],
+                "outbound": "Ⓜ️ 微软服务"
+            },
+            {
+                "geosite": [
+                    "apple"
+                ],
+                "outbound": "🍎 苹果服务"
+            },
+            {
+                "geosite": [
+                    "gfw",
+                    "geolocation-!cn"
+                ],
+                "outbound": "🚀 节点选择"
+            },
+            {
+                "geosite": [
+                    "cn"
+                ],
+                "outbound": "🎯 全球直连"
+            },
+            {
+                "geoip": [
+                    "cn"
+                ],
+                "outbound": "🎯 全球直连"
+            }
+        ],
         "auto_detect_interface": true
     },
     "experimental": {
