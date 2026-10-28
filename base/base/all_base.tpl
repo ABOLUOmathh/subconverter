@@ -627,27 +627,35 @@ enhanced-mode-by-rule = true
         "servers": [
             {
                 "tag": "dns_proxy",
-                "address": "tls://1.1.1.1",
-                "address_resolver": "dns_resolver"
+                "type": "tls",
+                "server": "1.1.1.1",
+                "domain_resolver": "dns_resolver"
             },
             {
                 "tag": "dns_direct",
-                "address": "h3://dns.alidns.com/dns-query",
-                "address_resolver": "dns_resolver",
+                "type": "https",
+                "server": "223.5.5.5",
+                "domain_resolver": "dns_resolver",
                 "detour": "DIRECT"
             },
             {
                 "tag": "dns_fakeip",
-                "address": "fakeip"
+                "type": "fakeip",
+                "inet4_range": "198.18.0.0/15"
+                {% if default(request.singbox.ipv6, "") == "1" %}
+                , "inet6_range": "fc00::/18"
+                {% endif %}
             },
             {
                 "tag": "dns_resolver",
-                "address": "223.5.5.5",
+                "type": "udp",
+                "server": "223.5.5.5",
                 "detour": "DIRECT"
             },
             {
-                "tag": "block",
-                "address": "rcode://success"
+                "tag": "dns_block",
+                "type": "rcode",
+                "rcode": "NOERROR"
             }
         ],
         "rules": [
@@ -681,15 +689,7 @@ enhanced-mode-by-rule = true
                 "server": "dns_proxy"
             }
         ],
-        "final": "dns_direct",
-        "independent_cache": true,
-        "fakeip": {
-            "enabled": true,
-            {% if default(request.singbox.ipv6, "") == "1" %}
-            "inet6_range": "fc00::\/18",
-            {% endif %}
-            "inet4_range": "198.18.0.0\/15"
-        }
+        "final": "dns_direct"
     },
     "ntp": {
         "enabled": true,
@@ -712,10 +712,12 @@ enhanced-mode-by-rule = true
         {
             "type": "tun",
             "tag": "tun-in",
-            "inet4_address": "172.19.0.1/30",
-            {% if default(request.singbox.ipv6, "") == "1" %}
-            "inet6_address": "fdfe:dcba:9876::1/126",
-            {% endif %}
+            "address": [
+                "172.19.0.1/30"
+                {% if default(request.singbox.ipv6, "") == "1" %}
+                , "fdfe:dcba:9876::1/126"
+                {% endif %}
+            ],
             "auto_route": true,
             "strict_route": true,
             "stack": "mixed",
