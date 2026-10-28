@@ -2424,7 +2424,7 @@ static rapidjson::Value buildSingBoxHysteria2ServerPorts(const std::string &port
 void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::vector<RulesetContent> &ruleset_content_array, const ProxyGroupConfigs &extra_proxy_group, extra_settings &ext) {
     using namespace rapidjson_ext;
     rapidjson::Document::AllocatorType &allocator = json.GetAllocator();
-    rapidjson::Value outbounds(rapidjson::kArrayType), route(rapidjson::kArrayType);
+    rapidjson::Value outbounds(rapidjson::kArrayType), route(rapidjson::kArrayType), endpoints(rapidjson::kArrayType);
     std::vector<Proxy> nodelist;
     string_array remarks_list;
 
@@ -2517,15 +2517,26 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
                 proxy.AddMember("type", "wireguard", allocator);
                 proxy.AddMember("tag", rapidjson::StringRef(x.Remark.c_str()), allocator);
                 rapidjson::Value addresses(rapidjson::kArrayType);
-                addresses.PushBack(rapidjson::StringRef(x.SelfIP.c_str()), allocator);
+                if (!x.SelfIP.empty())
+                {
+                    std::string ip = x.SelfIP;
+                    if (ip.find('/') == std::string::npos)
+                        ip += (ip.find(':') != std::string::npos ? "/128" : "/32");
+                    addresses.PushBack(rapidjson::Value(ip.c_str(), allocator), allocator);
+                }
                 if (!x.SelfIPv6.empty())
-                    addresses.PushBack(rapidjson::StringRef(x.SelfIPv6.c_str()), allocator);
-                proxy.AddMember("local_address", addresses, allocator);
+                {
+                    std::string ipv6 = x.SelfIPv6;
+                    if (ipv6.find('/') == std::string::npos)
+                        ipv6 += "/128";
+                    addresses.PushBack(rapidjson::Value(ipv6.c_str(), allocator), allocator);
+                }
+                proxy.AddMember("address", addresses, allocator);
                 proxy.AddMember("private_key", rapidjson::StringRef(x.PrivateKey.c_str()), allocator);
 
                 rapidjson::Value peer(rapidjson::kObjectType);
-                peer.AddMember("server", rapidjson::StringRef(x.Hostname.c_str()), allocator);
-                peer.AddMember("server_port", x.Port, allocator);
+                peer.AddMember("address", rapidjson::StringRef(x.Hostname.c_str()), allocator);
+                peer.AddMember("port", x.Port, allocator);
                 peer.AddMember("public_key", rapidjson::StringRef(x.PublicKey.c_str()), allocator);
                 if (!x.PreSharedKey.empty())
                     peer.AddMember("pre_shared_key", rapidjson::StringRef(x.PreSharedKey.c_str()), allocator);
@@ -2533,6 +2544,13 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
                 if (!x.AllowedIPs.empty())
                 {
                     auto allowed_ips = stringArrayToJsonArray(x.AllowedIPs, ",", allocator);
+                    peer.AddMember("allowed_ips", allowed_ips, allocator);
+                }
+                else
+                {
+                    rapidjson::Value allowed_ips(rapidjson::kArrayType);
+                    allowed_ips.PushBack("0.0.0.0/0", allocator);
+                    allowed_ips.PushBack("::/0", allocator);
                     peer.AddMember("allowed_ips", allowed_ips, allocator);
                 }
 
@@ -2545,7 +2563,8 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
                 rapidjson::Value peers(rapidjson::kArrayType);
                 peers.PushBack(peer, allocator);
                 proxy.AddMember("peers", peers, allocator);
-                proxy.AddMember("mtu", x.Mtu, allocator);
+                if (x.Mtu > 0)
+                    proxy.AddMember("mtu", x.Mtu, allocator);
                 break;
             }
             case ProxyType::Hysteria:
@@ -2767,12 +2786,17 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
         }
         nodelist.push_back(x);
         remarks_list.emplace_back(x.Remark);
-        outbounds.PushBack(proxy, allocator);
+        if (x.Type == ProxyType::WireGuard)
+            endpoints.PushBack(proxy, allocator);
+        else
+            outbounds.PushBack(proxy, allocator);
     }
 
     if (ext.nodelist)
     {
         json | AddMemberOrReplace("outbounds", outbounds, allocator);
+        if (endpoints.Size() > 0)
+            json | AddMemberOrReplace("endpoints", endpoints, allocator);
         return;
     }
 
@@ -2840,6 +2864,8 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
     }
 
     json | AddMemberOrReplace("outbounds", outbounds, allocator);
+    if (endpoints.Size() > 0)
+        json | AddMemberOrReplace("endpoints", endpoints, allocator);
 }
 
 std::string proxyToSingBox(std::vector<Proxy> &nodes, const std::string &base_conf, std::vector<RulesetContent> &ruleset_content_array, const ProxyGroupConfigs &extra_proxy_group, extra_settings &ext)

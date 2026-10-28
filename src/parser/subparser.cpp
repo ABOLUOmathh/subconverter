@@ -973,7 +973,7 @@ void explodeTrojan(std::string trojan, Proxy &node)
 
 void explodeVless(std::string vless, Proxy &node)
 {
-    std::string server, port, uuid, addition, group, remark, flow, security, sni, pbk, sid, net, path, fp, e_val, h_val;
+    std::string server, port, uuid, addition, group, remark, flow, security, sni, pbk, sid, net, path, fp, e_val, h_val, udp_val;
     vless.erase(0, 8);
     string_size pos = vless.rfind('#');
     if(pos != std::string::npos)
@@ -988,10 +988,23 @@ void explodeVless(std::string vless, Proxy &node)
         vless.erase(pos);
     }
 
+    if(vless.find('@') == std::string::npos)
+    {
+        std::string decoded = base64Decode(vless);
+        if(decoded.find('@') != std::string::npos)
+            vless = decoded;
+    }
+
     if(regGetMatch(vless, "(.*?)@(.*):(.*)", 4, 0, &uuid, &server, &port))
         return;
     if(port == "0")
         return;
+
+    if(startsWith(uuid, "auto:"))
+        uuid.erase(0, 5);
+
+    if(remark.empty())
+        remark = urlDecode(getUrlArg(addition, "remarks"));
 
     flow = getUrlArg(addition, "flow");
     security = getUrlArg(addition, "security");
@@ -1023,6 +1036,9 @@ void explodeVless(std::string vless, Proxy &node)
     node.Path = path;
     if(!e_val.empty())
         node.E = (e_val == "1" || e_val == "true");
+    udp_val = getUrlArg(addition, "udp");
+    if(!udp_val.empty())
+        node.UDP = (udp_val == "1" || udp_val == "true");
     node.H = h_val;
     node.Group = group.empty() ? VLESS_DEFAULT_GROUP : group;
 }
@@ -1095,6 +1111,9 @@ void explodeOneSocks(std::string onesocks, Proxy &node)
     node.PaddingLen = padding_len;
     if(!e_val.empty())
         node.E = (e_val == "1" || e_val == "true");
+    udp_val = getUrlArg(addition, "udp");
+    if(!udp_val.empty())
+        node.UDP = (udp_val == "1" || udp_val == "true");
     node.H = h_val;
     node.Group = group.empty() ? ONESOCKS_DEFAULT_GROUP : group;
 }
@@ -1180,6 +1199,9 @@ void explodeHeySocks(std::string heysocks, Proxy &node)
     node.Path = path;
     if(!e_val.empty())
         node.E = (e_val == "1" || e_val == "true");
+    udp_val = getUrlArg(addition, "udp");
+    if(!udp_val.empty())
+        node.UDP = (udp_val == "1" || udp_val == "true");
     node.H = h_val;
     node.Group = group.empty() ? HEYSOCKS_DEFAULT_GROUP : group;
 }
