@@ -2434,8 +2434,6 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
         outbounds.PushBack(direct, allocator);
         auto reject = buildObject(allocator, "type", "block", "tag", "REJECT");
         outbounds.PushBack(reject, allocator);
-        auto dns = buildObject(allocator, "type", "dns", "tag", "dns-out");
-        outbounds.PushBack(dns, allocator);
     }
 
     for (Proxy &x : nodes)
@@ -2460,9 +2458,17 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
                 proxy.AddMember("password", rapidjson::StringRef(x.Password.c_str()), allocator);
                 if (!x.UDPOverTCP.is_undef() && x.UDPOverTCP.get())
                 {
-                    proxy.AddMember("udp_over_tcp", true, allocator);
                     if (x.UDPOverTCPVersion != 0)
-                        proxy.AddMember("udp_over_tcp_version", x.UDPOverTCPVersion, allocator);
+                    {
+                        rapidjson::Value uot(rapidjson::kObjectType);
+                        uot.AddMember("enabled", true, allocator);
+                        uot.AddMember("version", x.UDPOverTCPVersion, allocator);
+                        proxy.AddMember("udp_over_tcp", uot, allocator);
+                    }
+                    else
+                    {
+                        proxy.AddMember("udp_over_tcp", true, allocator);
+                    }
                 }
                 if(!x.Plugin.empty() && !x.PluginOption.empty())
                 {
@@ -2637,12 +2643,22 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
             case ProxyType::OneSocks:
             {
                 addSingBoxCommonMembers(proxy, x, "onesocks", allocator);
-                proxy.AddMember("method", rapidjson::StringRef(x.EncryptMethod.c_str()), allocator);
+                proxy.AddMember("cipher", rapidjson::StringRef(x.EncryptMethod.c_str()), allocator);
                 proxy.AddMember("password", rapidjson::StringRef(x.Password.c_str()), allocator);
-                if (!x.UDPOverTCP.is_undef())
-                    proxy.AddMember("udp_over_tcp", x.UDPOverTCP.get(), allocator);
-                if (x.UDPOverTCPVersion > 0)
-                    proxy.AddMember("udp_over_tcp_version", x.UDPOverTCPVersion, allocator);
+                if (!x.UDPOverTCP.is_undef() && x.UDPOverTCP.get())
+                {
+                    if (x.UDPOverTCPVersion != 0)
+                    {
+                        rapidjson::Value uot(rapidjson::kObjectType);
+                        uot.AddMember("enabled", true, allocator);
+                        uot.AddMember("version", x.UDPOverTCPVersion, allocator);
+                        proxy.AddMember("udp_over_tcp", uot, allocator);
+                    }
+                    else
+                    {
+                        proxy.AddMember("udp_over_tcp", true, allocator);
+                    }
+                }
                 if (!x.PaddingLen.empty())
                     proxy.AddMember("padding_len", rapidjson::StringRef(x.PaddingLen.c_str()), allocator);
                 if (!x.E.is_undef())
@@ -2653,12 +2669,23 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
             }
             case ProxyType::HeySocks:
             {
-                addSingBoxCommonMembers(proxy, x, "xhttp", allocator);
-                proxy.AddMember("method", rapidjson::StringRef(x.EncryptMethod.c_str()), allocator);
+                addSingBoxCommonMembers(proxy, x, "heysocks-xhttp", allocator);
+                proxy.AddMember("cipher", rapidjson::StringRef(x.EncryptMethod.c_str()), allocator);
                 proxy.AddMember("password", rapidjson::StringRef(x.Password.c_str()), allocator);
-                if (!x.UDPOverTCP.is_undef())
-                    proxy.AddMember("udp_over_tcp", x.UDPOverTCP.get(), allocator);
-                proxy.AddMember("udp_over_tcp_version", x.UDPOverTCPVersion, allocator);
+                if (!x.UDPOverTCP.is_undef() && x.UDPOverTCP.get())
+                {
+                    if (x.UDPOverTCPVersion != 0)
+                    {
+                        rapidjson::Value uot(rapidjson::kObjectType);
+                        uot.AddMember("enabled", true, allocator);
+                        uot.AddMember("version", x.UDPOverTCPVersion, allocator);
+                        proxy.AddMember("udp_over_tcp", uot, allocator);
+                    }
+                    else
+                    {
+                        proxy.AddMember("udp_over_tcp", true, allocator);
+                    }
+                }
                 if (!x.PaddingLen.empty())
                     proxy.AddMember("padding_len", rapidjson::StringRef(x.PaddingLen.c_str()), allocator);
                 if (!x.FakeNetTCP.empty() || !x.FakeNetUDP.empty())

@@ -30,31 +30,23 @@
                 "type": "udp",
                 "server": "223.5.5.5",
                 "detour": "DIRECT"
-            },
-            {
-                "tag": "dns_block",
-                "type": "rcode",
-                "rcode": "NOERROR"
             }
         ],
         "rules": [
             {
-                "outbound": [
-                    "any"
-                ],
-                "server": "dns_resolver"
+                "clash_mode": "Global",
+                "server": "dns_proxy"
             },
             {
-                "geosite": [
-                    "category-ads-all"
-                ],
-                "server": "dns_block",
-                "disable_cache": true
+                "clash_mode": "Direct",
+                "server": "dns_direct"
             },
             {
-                "geosite": [
-                    "geolocation-!cn"
-                ],
+                "rule_set": "geosite-category-ads-all",
+                "action": "reject"
+            },
+            {
+                "rule_set": "geosite-geolocation-!cn",
                 "query_type": [
                     "A",
                     "AAAA"
@@ -62,9 +54,7 @@
                 "server": "dns_fakeip"
             },
             {
-                "geosite": [
-                    "geolocation-!cn"
-                ],
+                "rule_set": "geosite-geolocation-!cn",
                 "server": "dns_proxy"
             }
         ],
@@ -93,12 +83,12 @@
             ],
             "auto_route": true,
             "strict_route": true,
-            "stack": "mixed",
-            "sniff": true
+            "stack": "mixed"
         }
     ],
     "outbounds": [],
     "route": {
+        "default_domain_resolver": "dns_resolver",
         "rules": [],
         "auto_detect_interface": true
     },

@@ -534,8 +534,16 @@ void rulesetToSingBox(rapidjson::Document &base_rule, std::vector<RulesetContent
             rules.Swap(base_rule["route"]["rules"]);
     }
 
-    auto dns_object = buildObject(allocator, "protocol", "dns", "outbound", "dns-out");
+    auto sniff_object = buildObject(allocator, "action", "sniff");
+    rules.PushBack(sniff_object, allocator);
+    auto dns_object = buildObject(allocator, "protocol", "dns", "action", "hijack-dns");
     rules.PushBack(dns_object, allocator);
+    rapidjson::Value port_dns(rapidjson::kObjectType);
+    port_dns.AddMember("action", "hijack-dns", allocator);
+    rapidjson::Value port_array(rapidjson::kArrayType);
+    port_array.PushBack(53, allocator);
+    port_dns.AddMember("port", port_array, allocator);
+    rules.PushBack(port_dns, allocator);
 
     if (global.singBoxAddClashModes)
     {
@@ -600,6 +608,9 @@ void rulesetToSingBox(rapidjson::Document &base_rule, std::vector<RulesetContent
 
     if (!base_rule.HasMember("route"))
         base_rule.AddMember("route", rapidjson::Value(rapidjson::kObjectType), allocator);
+
+    if (!base_rule["route"].HasMember("default_domain_resolver"))
+        base_rule["route"].AddMember("default_domain_resolver", "dns_resolver", allocator);
 
     auto finalValue = rapidjson::Value(final.c_str(), allocator);
     base_rule["route"]

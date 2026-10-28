@@ -651,31 +651,23 @@ enhanced-mode-by-rule = true
                 "type": "udp",
                 "server": "223.5.5.5",
                 "detour": "DIRECT"
-            },
-            {
-                "tag": "dns_block",
-                "type": "rcode",
-                "rcode": "NOERROR"
             }
         ],
         "rules": [
             {
-                "outbound": [
-                    "any"
-                ],
-                "server": "dns_resolver"
+                "clash_mode": "Global",
+                "server": "dns_proxy"
             },
             {
-                "geosite": [
-                    "category-ads-all"
-                ],
-                "server": "dns_block",
-                "disable_cache": true
+                "clash_mode": "Direct",
+                "server": "dns_direct"
             },
             {
-                "geosite": [
-                    "geolocation-!cn"
-                ],
+                "rule_set": "geosite-category-ads-all",
+                "action": "reject"
+            },
+            {
+                "rule_set": "geosite-geolocation-!cn",
                 "query_type": [
                     "A",
                     "AAAA"
@@ -683,9 +675,7 @@ enhanced-mode-by-rule = true
                 "server": "dns_fakeip"
             },
             {
-                "geosite": [
-                    "geolocation-!cn"
-                ],
+                "rule_set": "geosite-geolocation-!cn",
                 "server": "dns_proxy"
             }
         ],
@@ -720,13 +710,154 @@ enhanced-mode-by-rule = true
             ],
             "auto_route": true,
             "strict_route": true,
-            "stack": "mixed",
-            "sniff": true
+            "stack": "mixed"
         }
     ],
     "outbounds": [],
     "route": {
+        "default_domain_resolver": "dns_resolver",
+        "rule_set": [
+            {
+                "tag": "geosite-category-ads-all",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-privacy",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-privacy.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-openai",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-openai.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-youtube",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-youtube.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-netflix",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-netflix.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-telegram",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-telegram.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-bilibili",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-bilibili.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-bahamut",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-bahamut.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-steam",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-steam.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-netease",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-netease.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-google",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-google.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-microsoft",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-microsoft.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-apple",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-apple.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-geolocation-!cn",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-!cn.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geosite-cn",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geoip-cn",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geoip-telegram",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-telegram.srs",
+                "download_detour": "DIRECT"
+            },
+            {
+                "tag": "geoip-netflix",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://gh-proxy.com/https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-netflix.srs",
+                "download_detour": "DIRECT"
+            }
+        ],
         "rules": [
+            {
+                "action": "sniff"
+            },
+            {
+                "protocol": "dns",
+                "action": "hijack-dns"
+            },
+            {
+                "port": [
+                    53
+                ],
+                "action": "hijack-dns"
+            },
             {
                 "domain_suffix": [
                     "ieee.org",
@@ -748,7 +879,7 @@ enhanced-mode-by-rule = true
                     "sciencedirect.com",
                     "sciencedirectassets.com"
                 ],
-                "outbound": "DIRECT"
+                "outbound": "🎯 全球直连"
             },
             {
                 "domain_suffix": [
@@ -779,117 +910,75 @@ enhanced-mode-by-rule = true
                 "outbound": "🎯 全球直连"
             },
             {
-                "geosite": [
-                    "category-ads-all"
-                ],
+                "rule_set": "geosite-category-ads-all",
                 "outbound": "🛑 广告拦截"
             },
             {
-                "geosite": [
-                    "privacy"
-                ],
+                "rule_set": "geosite-privacy",
                 "outbound": "🛡️ 隐私防护"
             },
             {
-                "geosite": [
-                    "openai",
-                    "anthropic",
-                    "claude"
-                ],
+                "rule_set": "geosite-openai",
                 "outbound": "💬 Ai平台"
             },
             {
-                "geosite": [
-                    "youtube"
-                ],
+                "rule_set": "geosite-youtube",
                 "outbound": "📹 油管视频"
             },
             {
-                "geosite": [
-                    "netflix"
-                ],
+                "rule_set": "geosite-netflix",
                 "outbound": "🎥 奈飞视频"
             },
             {
-                "geoip": [
-                    "netflix"
-                ],
+                "rule_set": "geoip-netflix",
                 "outbound": "🎥 奈飞视频"
             },
             {
-                "geosite": [
-                    "telegram"
-                ],
+                "rule_set": "geosite-telegram",
                 "outbound": "📲 电报消息"
             },
             {
-                "geoip": [
-                    "telegram"
-                ],
+                "rule_set": "geoip-telegram",
                 "outbound": "📲 电报消息"
             },
             {
-                "geosite": [
-                    "bilibili"
-                ],
+                "rule_set": "geosite-bilibili",
                 "outbound": "📺 哔哩哔哩"
             },
             {
-                "geosite": [
-                    "bahamut"
-                ],
+                "rule_set": "geosite-bahamut",
                 "outbound": "📺 巴哈姆特"
             },
             {
-                "geosite": [
-                    "steam",
-                    "epicgames",
-                    "ea",
-                    "blizzard"
-                ],
+                "rule_set": "geosite-steam",
                 "outbound": "🎮 游戏平台"
             },
             {
-                "geosite": [
-                    "netease"
-                ],
+                "rule_set": "geosite-netease",
                 "outbound": "🎶 网易音乐"
             },
             {
-                "geosite": [
-                    "google"
-                ],
+                "rule_set": "geosite-google",
                 "outbound": "📢 谷歌FCM"
             },
             {
-                "geosite": [
-                    "microsoft"
-                ],
+                "rule_set": "geosite-microsoft",
                 "outbound": "Ⓜ️ 微软服务"
             },
             {
-                "geosite": [
-                    "apple"
-                ],
+                "rule_set": "geosite-apple",
                 "outbound": "🍎 苹果服务"
             },
             {
-                "geosite": [
-                    "gfw",
-                    "geolocation-!cn"
-                ],
+                "rule_set": "geosite-geolocation-!cn",
                 "outbound": "🚀 节点选择"
             },
             {
-                "geosite": [
-                    "cn"
-                ],
+                "rule_set": "geosite-cn",
                 "outbound": "🎯 全球直连"
             },
             {
-                "geoip": [
-                    "cn"
-                ],
+                "rule_set": "geoip-cn",
                 "outbound": "🎯 全球直连"
             }
         ],
