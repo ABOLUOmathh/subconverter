@@ -1,4 +1,5 @@
 subconverter.exe
+subconverter
 .vscode
 cmake-build-debug*
 .idea
@@ -6,3 +7,11 @@ base/cache
 build
 .xmake
 build
+*.log
+*.db
+*.yaml
+*.yml
+*.json
+*.txt
+!CMakeLists.txt
+!base/base/all_base.tpl
