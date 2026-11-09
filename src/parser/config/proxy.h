@@ -27,6 +27,7 @@ enum class ProxyType
     VLESS,
     OneSocks,
     HeySocks,
+    TUIC,
 };
 
 inline String getProxyTypeName(ProxyType type)
@@ -63,6 +64,8 @@ inline String getProxyTypeName(ProxyType type)
         return "OneSocks";
     case ProxyType::HeySocks:
         return "HeySocks";
+    case ProxyType::TUIC:
+        return "TUIC";
     default:
         return "Unknown";
     }
@@ -140,7 +143,7 @@ struct Proxy
 
     uint32_t CWND = 0;
 
-    // Custom protocols extensions (OneSocks, HeySocks, VLESS-EH, BLACKSTONE UOT)
+    // Custom protocols extensions (OneSocks, HeySocks, VLESS-EH, BLACKSTONE UOT, TUIC)
     String PaddingLen;
     tribool E;
     String H;
@@ -152,6 +155,13 @@ struct Proxy
     String FakeNetUDP;
     tribool UDPOverTCP;
     uint32_t UDPOverTCPVersion = 0;
+
+    // TUIC extensions
+    String CongestionControl;
+    String UdpRelayMode;
+    tribool ReduceRtt;
+    tribool DisableSni;
+    uint16_t RequestTimeout = 0;
 };
 
 #define SS_DEFAULT_GROUP "SSProvider"
@@ -168,5 +178,6 @@ struct Proxy
 #define VLESS_DEFAULT_GROUP "VLESSProvider"
 #define ONESOCKS_DEFAULT_GROUP "OneSocksProvider"
 #define HEYSOCKS_DEFAULT_GROUP "HeySocksProvider"
+#define TUIC_DEFAULT_GROUP "TuicProvider"
 
 #endif // PROXY_H_INCLUDED

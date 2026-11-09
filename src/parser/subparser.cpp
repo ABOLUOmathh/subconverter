@@ -271,6 +271,43 @@ void anyTLSConstruct(
     node.SNI = sni;
 }
 
+void tuicConstruct(
+    Proxy &node,
+    const std::string &group,
+    const std::string &remarks,
+    const std::string &server,
+    const std::string &port,
+    const std::string &uuid,
+    const std::string &password,
+    const std::string &congestion_control,
+    const std::string &alpn,
+    const std::string &sni,
+    const std::string &udp_relay_mode,
+    tribool udp,
+    tribool tfo,
+    tribool scv,
+    tribool reduce_rtt,
+    tribool disable_sni,
+    uint16_t request_timeout,
+    const std::string &underlying_proxy
+) {
+    commonConstruct(node, ProxyType::TUIC, group, remarks, server, port, udp.is_undef() ? tribool(true) : udp, tfo, scv, tribool(), underlying_proxy);
+    node.TLSSecure = true;
+    node.UserId = uuid;
+    node.Password = password;
+    node.CongestionControl = congestion_control.empty() ? "bbr" : congestion_control;
+    node.UdpRelayMode = udp_relay_mode.empty() ? "native" : udp_relay_mode;
+    node.SNI = sni;
+    node.ServerName = sni;
+    if(!alpn.empty())
+        node.Alpn = split(alpn, ",");
+    else
+        node.Alpn = StringArray{"h3"};
+    node.ReduceRtt = reduce_rtt;
+    node.DisableSni = disable_sni;
+    node.RequestTimeout = request_timeout;
+}
+
 void explodeVmess(std::string vmess, Proxy &node)
 {
     std::string version, ps, add, port, type, id, aid, net, path, host, tls, sni;
@@ -919,11 +956,14 @@ void explodeHTTPSub(std::string link, Proxy &node)
 
 void explodeTrojan(std::string trojan, Proxy &node)
 {
-    std::string server, port, psk, addition, group, remark, host, path, network;
+    std::string server, port, psk, addition, group, remark, host, sni, path, network;
     tribool tfo, scv;
-    trojan.erase(0, 9);
-    string_size pos = trojan.rfind('#');
+    if(startsWith(trojan, "trojan-go://"))
+        trojan.erase(0, 12);
+    else if(startsWith(trojan, "trojan://"))
+        trojan.erase(0, 9);
 
+    string_size pos = trojan.rfind('#');
     if(pos != std::string::npos)
     {
         remark = urlDecode(trojan.substr(pos + 1));
@@ -938,37 +978,100 @@ void explodeTrojan(std::string trojan, Proxy &node)
 
     if(regGetMatch(trojan, "(.*?)@(.*):(.*)", 4, 0, &psk, &server, &port))
         return;
-    if(port == "0")
+    if(port == "0" || port.empty())
         return;
 
-    host = getUrlArg(addition, "sni");
-    if(host.empty())
-        host = getUrlArg(addition, "peer");
+    sni = getUrlArg(addition, "sni");
+    if(sni.empty())
+        sni = getUrlArg(addition, "peer");
+    host = getUrlArg(addition, "host");
     tfo = getUrlArg(addition, "tfo");
     scv = getUrlArg(addition, "allowInsecure");
+    if(scv.is_undef())
+        scv = getUrlArg(addition, "insecure");
     group = urlDecode(getUrlArg(addition, "group"));
+
+    std::string net_type = getUrlArg(addition, "type");
+    if(net_type.empty())
+        net_type = getUrlArg(addition, "network");
+    if(net_type == "ws" || net_type == "websocket")
+    {
+        network = "ws";
+        path = getUrlArg(addition, "path");
+    }
+    else if(net_type == "grpc")
+    {
+        network = "grpc";
+        path = getUrlArg(addition, "serviceName");
+        if(path.empty())
+            path = getUrlArg(addition, "path");
+    }
 
     if(getUrlArg(addition, "ws") == "1")
     {
         path = getUrlArg(addition, "wspath");
         network = "ws";
     }
-    // support the trojan link format used by v2ryaN and X-ui.
-    // format: trojan://{password}@{server}:{port}?type=ws&security=tls&path={path (urlencoded)}&sni={host}#{name}
-    else if(getUrlArg(addition, "type") == "ws")
+
+    // Support SIP003 / Trojan-Go / Sub-Store plugin parameters
+    // format: plugin=websocket;path=/ws;host=example.com or plugin=obfs-local;obfs=websocket;...
+    std::string plugin = urlDecode(getUrlArg(addition, "plugin"));
+    std::string plugin_opts = urlDecode(getUrlArg(addition, "plugin-opts"));
+    if(plugin_opts.empty())
+        plugin_opts = urlDecode(getUrlArg(addition, "plugin_opts"));
+    std::string combined_plugin = plugin + (plugin_opts.empty() ? "" : (";" + plugin_opts));
+    if(!combined_plugin.empty())
     {
-        path = getUrlArg(addition, "path");
-        if(path.substr(0, 3) == "%2F")
-            path = urlDecode(path);
-        network = "ws";
+        string_array opts = split(combined_plugin, ";");
+        for(const auto &raw_opt : opts)
+        {
+            std::string opt = trim(raw_opt);
+            if(opt.empty())
+                continue;
+            string_size eq = opt.find('=');
+            if(eq == std::string::npos)
+            {
+                if(opt == "websocket" || opt == "ws" || opt == "v2ray-plugin")
+                    network = "ws";
+                continue;
+            }
+            std::string key = trim(opt.substr(0, eq));
+            std::string val = trim(opt.substr(eq + 1));
+            if(key == "obfs" && (val == "websocket" || val == "ws"))
+                network = "ws";
+            else if(key == "path" && path.empty())
+                path = val;
+            else if((key == "host" || key == "obfs-host") && host.empty())
+                host = val;
+        }
     }
+
+    if(path.empty())
+        path = getUrlArg(addition, "path");
+    if(path.substr(0, 3) == "%2F" || path.find('%') != std::string::npos)
+        path = urlDecode(path);
 
     if(remark.empty())
         remark = server + ":" + port;
     if(group.empty())
         group = TROJAN_DEFAULT_GROUP;
 
-    trojanConstruct(node, group, remark, server, port, psk, network, host, path, true, tribool(), tfo, scv);
+    std::string target_host = host.empty() ? sni : host;
+    trojanConstruct(node, group, remark, server, port, psk, network, target_host, path, true, tribool(), tfo, scv);
+    if(!sni.empty())
+    {
+        node.SNI = sni;
+        node.ServerName = sni;
+    }
+    else if(!host.empty())
+    {
+        node.SNI = host;
+        node.ServerName = host;
+    }
+    if(!host.empty())
+        node.Host = host;
+    else if(!sni.empty())
+        node.Host = sni;
 }
 
 void explodeVless(std::string vless, Proxy &node)
@@ -1573,15 +1676,32 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
         case "trojan"_hash:
             group = TROJAN_DEFAULT_GROUP;
             singleproxy["password"] >>= password;
-            singleproxy["sni"] >>= host;
+            singleproxy["sni"] >>= sni;
+            if(sni.empty())
+                singleproxy["servername"] >>= sni;
             singleproxy["network"] >>= net;
+            host.clear();
+            path.clear();
             switch(hash_(net))
             {
             case "grpc"_hash:
                 singleproxy["grpc-opts"]["grpc-service-name"] >>= path;
+                if(path.empty())
+                    singleproxy["grpc-opts"]["service-name"] >>= path;
                 break;
             case "ws"_hash:
-                singleproxy["ws-opts"]["path"] >>= path;
+                if(singleproxy["ws-opts"].IsDefined())
+                {
+                    singleproxy["ws-opts"]["path"] >>= path;
+                    singleproxy["ws-opts"]["headers"]["Host"] >>= host;
+                    if(host.empty())
+                        singleproxy["ws-opts"]["headers"]["host"] >>= host;
+                }
+                else
+                {
+                    singleproxy["ws-path"] >>= path;
+                    singleproxy["ws-headers"]["Host"] >>= host;
+                }
                 break;
             default:
                 net = "tcp";
@@ -1589,7 +1709,14 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
                 break;
             }
 
-            trojanConstruct(node, group, ps, server, port, password, net, host, path, true, udp, tfo, scv, tribool(),  underlying_proxy);
+            trojanConstruct(node, group, ps, server, port, password, net, host.empty() ? sni : host, path, true, udp, tfo, scv, tribool(), underlying_proxy);
+            if(!sni.empty())
+            {
+                node.SNI = sni;
+                node.ServerName = sni;
+            }
+            if(!host.empty())
+                node.Host = host;
             break;
         case "snell"_hash:
             group = SNELL_DEFAULT_GROUP;
@@ -1673,6 +1800,71 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
 
             anyTLSConstruct(node, group, ps, server, port, password, sni, udp, tfo, scv, underlying_proxy);
             break;
+        case "tuic"_hash:
+            group = TUIC_DEFAULT_GROUP;
+            id.clear(); password.clear(); sni.clear();
+            singleproxy["uuid"] >>= id;
+            singleproxy["password"] >>= password;
+            if(password.empty())
+                singleproxy["token"] >>= password;
+            singleproxy["sni"] >>= sni;
+            if(sni.empty())
+                singleproxy["server-name"] >>= sni;
+            if(sni.empty())
+                singleproxy["servername"] >>= sni;
+            if(singleproxy["alpn"].IsSequence())
+            {
+                StringArray alpn_list;
+                for(size_t i = 0; i < singleproxy["alpn"].size(); ++i)
+                    alpn_list.push_back(singleproxy["alpn"][i].as<std::string>());
+                node.Alpn = alpn_list;
+            }
+            else if(singleproxy["alpn"].IsDefined())
+            {
+                std::string alpn_str;
+                singleproxy["alpn"] >>= alpn_str;
+                node.Alpn = split(alpn_str, ",");
+            }
+            if(node.Alpn.empty())
+                node.Alpn = StringArray{"h3"};
+
+            singleproxy["congestion-controller"] >>= node.CongestionControl;
+            if(node.CongestionControl.empty())
+                singleproxy["congestion_control"] >>= node.CongestionControl;
+            if(node.CongestionControl.empty())
+                node.CongestionControl = "bbr";
+
+            singleproxy["udp-relay-mode"] >>= node.UdpRelayMode;
+            if(node.UdpRelayMode.empty())
+                singleproxy["udp_relay_mode"] >>= node.UdpRelayMode;
+            if(node.UdpRelayMode.empty())
+                node.UdpRelayMode = "native";
+
+            if(singleproxy["reduce-rtt"].IsDefined())
+                node.ReduceRtt = singleproxy["reduce-rtt"].as<bool>();
+            else if(singleproxy["zero-rtt-handshake"].IsDefined())
+                node.ReduceRtt = singleproxy["zero-rtt-handshake"].as<bool>();
+
+            if(singleproxy["disable-sni"].IsDefined())
+                node.DisableSni = singleproxy["disable-sni"].as<bool>();
+
+            if(singleproxy["request-timeout"].IsDefined())
+                node.RequestTimeout = singleproxy["request-timeout"].as<uint16_t>();
+
+            node.Type = ProxyType::TUIC;
+            node.Remark = ps;
+            node.Hostname = server;
+            node.Port = to_int(port, 443);
+            node.UserId = id;
+            node.Password = password;
+            node.SNI = sni;
+            node.ServerName = sni;
+            node.TLSSecure = true;
+            node.UDP = udp.is_undef() ? tribool(true) : udp;
+            node.TCPFastOpen = tfo;
+            node.AllowInsecure = scv;
+            node.Group = group;
+            break;
         case "vless"_hash:
             group = VLESS_DEFAULT_GROUP;
             flow.clear(); pbk.clear(); sid.clear(); fingerprint.clear(); e_val.clear(); h_val.clear(); path.clear(); host.clear(); sni.clear();
@@ -1712,11 +1904,30 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
                 singleproxy["grpc-opts"]["grpc-service-name"] >>= path;
                 singleproxy["servername"] >>= host;
                 break;
+            case "splithttp"_hash:
             case "xhttp"_hash:
                 if(singleproxy["xhttp-opts"].IsDefined())
                 {
                     path = singleproxy["xhttp-opts"]["path"].IsDefined() ? safe_as<std::string>(singleproxy["xhttp-opts"]["path"]) : "/";
                     singleproxy["xhttp-opts"]["headers"]["Host"] >>= host;
+                    if(host.empty())
+                        singleproxy["xhttp-opts"]["headers"]["host"] >>= host;
+                }
+                else if(singleproxy["splithttp-opts"].IsDefined())
+                {
+                    path = singleproxy["splithttp-opts"]["path"].IsDefined() ? safe_as<std::string>(singleproxy["splithttp-opts"]["path"]) : "/";
+                    singleproxy["splithttp-opts"]["headers"]["Host"] >>= host;
+                    if(host.empty())
+                        singleproxy["splithttp-opts"]["headers"]["host"] >>= host;
+                }
+                break;
+            case "httpupgrade"_hash:
+                if(singleproxy["httpupgrade-opts"].IsDefined())
+                {
+                    path = singleproxy["httpupgrade-opts"]["path"].IsDefined() ? safe_as<std::string>(singleproxy["httpupgrade-opts"]["path"]) : "/";
+                    singleproxy["httpupgrade-opts"]["headers"]["Host"] >>= host;
+                    if(host.empty())
+                        singleproxy["httpupgrade-opts"]["headers"]["host"] >>= host;
                 }
                 break;
             default:
@@ -1970,7 +2181,7 @@ void explodeKitsunebi(std::string kit, Proxy &node)
 
 
 void explodeStdHysteria2(std::string hysteria2, Proxy &node) {
-    std::string add, port, password, host, insecure, up, down, alpn, obfs, obfs_password, remarks, sni, fingerprint;
+    std::string add, port, password, host, insecure, up, down, alpn, obfs, obfs_password, remarks, sni, fingerprint, ports;
     std::string addition;
     tribool scv;
     hysteria2 = hysteria2.substr(12);
@@ -2003,20 +2214,90 @@ void explodeStdHysteria2(std::string hysteria2, Proxy &node) {
             return;
     }
 
+    ports = getUrlArg(addition, "mport");
+    if (ports.empty())
+        ports = getUrlArg(addition, "ports");
+    if (ports.empty())
+        ports = port;
+
     scv = getUrlArg(addition, "insecure");
     up = getUrlArg(addition, "up");
     down = getUrlArg(addition, "down");
-    // the alpn is not supported officially yet
     alpn = getUrlArg(addition, "alpn");
     obfs = getUrlArg(addition, "obfs");
     obfs_password = getUrlArg(addition, "obfs-password");
     sni = getUrlArg(addition, "sni");
     fingerprint = getUrlArg(addition, "pinSHA256");
+    if (fingerprint.empty())
+        fingerprint = getUrlArg(addition, "fp");
     if (remarks.empty())
         remarks = add + ":" + port;
 
-    hysteria2Construct(node, HYSTERIA2_DEFAULT_GROUP, remarks, add, port, port, up, down, password, obfs, obfs_password, sni, fingerprint, "", "", "", "", "", tribool(), scv, "");
+    hysteria2Construct(node, HYSTERIA2_DEFAULT_GROUP, remarks, add, port, ports, up, down, password, obfs, obfs_password, sni, fingerprint, alpn, "", "", "", "", tribool(), scv, "");
     return;
+}
+
+void explodeHysteria(std::string hysteria, Proxy &node) {
+    if (startsWith(hysteria, "hy://"))
+        hysteria.erase(0, 5);
+    else if (startsWith(hysteria, "hysteria://"))
+        hysteria.erase(0, 11);
+
+    std::string add, port, auth, up, down, alpn, obfs, obfs_param, remarks, sni, protocol, ports;
+    std::string addition;
+    tribool scv;
+    string_size pos = hysteria.rfind('#');
+    if (pos != std::string::npos) {
+        remarks = urlDecode(hysteria.substr(pos + 1));
+        hysteria.erase(pos);
+    }
+    pos = hysteria.rfind('?');
+    if (pos != std::string::npos) {
+        addition = hysteria.substr(pos + 1);
+        hysteria.erase(pos);
+    }
+
+    if (strFind(hysteria, "@")) {
+        if (regGetMatch(hysteria, R"(^(.*?)@(.*)[:](\d+)$)", 4, 0, &auth, &add, &port))
+            return;
+    } else {
+        auth = getUrlArg(addition, "auth");
+        if (auth.empty())
+            auth = getUrlArg(addition, "auth_str");
+        if (regGetMatch(hysteria, R"(^(.*)[:](\d+)$)", 3, 0, &add, &port))
+            return;
+    }
+    if (port == "0" || port.empty())
+        return;
+
+    ports = getUrlArg(addition, "mport");
+    if (ports.empty())
+        ports = getUrlArg(addition, "ports");
+    if (ports.empty())
+        ports = port;
+
+    protocol = getUrlArg(addition, "protocol");
+    if (protocol.empty())
+        protocol = "udp";
+    up = getUrlArg(addition, "up");
+    if (up.empty())
+        up = getUrlArg(addition, "upmbps");
+    down = getUrlArg(addition, "down");
+    if (down.empty())
+        down = getUrlArg(addition, "downmbps");
+    alpn = getUrlArg(addition, "alpn");
+    obfs = getUrlArg(addition, "obfs");
+    obfs_param = getUrlArg(addition, "obfsParam");
+    if (obfs_param.empty())
+        obfs_param = getUrlArg(addition, "obfs-param");
+    sni = getUrlArg(addition, "peer");
+    if (sni.empty())
+        sni = getUrlArg(addition, "sni");
+    scv = getUrlArg(addition, "insecure");
+    if (remarks.empty())
+        remarks = add + ":" + port;
+
+    hysteriaConstruct(node, HYSTERIA_DEFAULT_GROUP, remarks, add, port, ports, protocol, "", up, "", down, "", auth, auth, obfs_param.empty() ? obfs : obfs_param, sni, "", "", "", "", "", "", "", alpn, tribool(), scv, "");
 }
 
 void explodeHysteria2(std::string hysteria2, Proxy &node) {
@@ -2059,6 +2340,160 @@ void explodeAnyTLS(std::string anytls, Proxy &node) {
     if (remarks.empty())
         remarks = add + ":" + port;
     anyTLSConstruct(node, ANYTLS_DEFAULT_GROUP, remarks, add, port, password, sni, udp, tribool(), scv, "");
+}
+
+void explodeTuic(std::string tuic, Proxy &node) {
+    if (startsWith(tuic, "tuic://"))
+        tuic.erase(0, 7);
+
+    std::string credentials, server, port, uuid, password, remarks, addition;
+    string_size pos = tuic.rfind('#');
+    if (pos != std::string::npos) {
+        remarks = urlDecode(tuic.substr(pos + 1));
+        tuic.erase(pos);
+    }
+    pos = tuic.rfind('?');
+    if (pos != std::string::npos) {
+        addition = tuic.substr(pos + 1);
+        tuic.erase(pos);
+    }
+
+    if (strFind(tuic, "@")) {
+        if (regGetMatch(tuic, R"(^(.*?)@(.*)[:](\d+)$)", 4, 0, &credentials, &server, &port))
+            return;
+    } else {
+        if (regGetMatch(tuic, R"(^(.*)[:](\d+)$)", 3, 0, &server, &port))
+            return;
+    }
+    if (port == "0" || port.empty())
+        return;
+
+    string_size colon = credentials.find(':');
+    if (colon != std::string::npos) {
+        uuid = credentials.substr(0, colon);
+        password = credentials.substr(colon + 1);
+    } else {
+        uuid = credentials;
+        password = getUrlArg(addition, "password");
+        if (password.empty())
+            password = getUrlArg(addition, "token");
+    }
+
+    std::string cc = getUrlArg(addition, "congestion_control");
+    if (cc.empty())
+        cc = getUrlArg(addition, "congestion-controller");
+    if (cc.empty())
+        cc = "bbr";
+
+    std::string alpn = getUrlArg(addition, "alpn");
+    if (alpn.empty())
+        alpn = "h3";
+
+    std::string sni = getUrlArg(addition, "sni");
+    if (sni.empty())
+        sni = getUrlArg(addition, "peer");
+
+    std::string udp_relay_mode = getUrlArg(addition, "udp_relay_mode");
+    if (udp_relay_mode.empty())
+        udp_relay_mode = getUrlArg(addition, "udp-relay-mode");
+    if (udp_relay_mode.empty())
+        udp_relay_mode = "native";
+
+    tribool scv = getUrlArg(addition, "allow_insecure");
+    if (scv.is_undef())
+        scv = getUrlArg(addition, "insecure");
+    if (scv.is_undef())
+        scv = getUrlArg(addition, "allowInsecure");
+
+    tribool reduce_rtt = getUrlArg(addition, "zero_rtt_handshake");
+    if (reduce_rtt.is_undef())
+        reduce_rtt = getUrlArg(addition, "zero-rtt-handshake");
+    if (reduce_rtt.is_undef())
+        reduce_rtt = getUrlArg(addition, "reduce_rtt");
+
+    tribool disable_sni = getUrlArg(addition, "disable_sni");
+    if (disable_sni.is_undef())
+        disable_sni = getUrlArg(addition, "disable-sni");
+
+    uint16_t req_timeout = to_int(getUrlArg(addition, "request_timeout"), 8000);
+    if (req_timeout == 0)
+        req_timeout = to_int(getUrlArg(addition, "request-timeout"), 8000);
+
+    if (remarks.empty())
+        remarks = server + ":" + port;
+
+    tuicConstruct(node, TUIC_DEFAULT_GROUP, remarks, server, port, uuid, password, cc, alpn, sni, udp_relay_mode, tribool(true), tribool(), scv, reduce_rtt, disable_sni, req_timeout, "");
+}
+
+void explodeWireGuard(std::string wireguard, Proxy &node) {
+    if (startsWith(wireguard, "wireguard://") || startsWith(wireguard, "wg://"))
+    {
+        if (startsWith(wireguard, "wireguard://"))
+            wireguard.erase(0, 12);
+        else
+            wireguard.erase(0, 5);
+    }
+
+    std::string priv_key, server, port, remarks, addition;
+    string_size pos = wireguard.rfind('#');
+    if (pos != std::string::npos) {
+        remarks = urlDecode(wireguard.substr(pos + 1));
+        wireguard.erase(pos);
+    }
+    pos = wireguard.rfind('?');
+    if (pos != std::string::npos) {
+        addition = wireguard.substr(pos + 1);
+        wireguard.erase(pos);
+    }
+
+    if (strFind(wireguard, "@")) {
+        if (regGetMatch(wireguard, R"(^(.*?)@(.*)[:](\d+)$)", 4, 0, &priv_key, &server, &port))
+            return;
+    } else {
+        priv_key = urlDecode(getUrlArg(addition, "private_key"));
+        if (priv_key.empty())
+            priv_key = urlDecode(getUrlArg(addition, "privatekey"));
+        if (regGetMatch(wireguard, R"(^(.*)[:](\d+)$)", 3, 0, &server, &port))
+            return;
+    }
+    if (port == "0" || port.empty())
+        return;
+
+    std::string pub_key = urlDecode(getUrlArg(addition, "public_key"));
+    if (pub_key.empty())
+        pub_key = urlDecode(getUrlArg(addition, "publickey"));
+    std::string psk = urlDecode(getUrlArg(addition, "preshared_key"));
+    if (psk.empty())
+        psk = urlDecode(getUrlArg(addition, "presharedkey"));
+    std::string address = urlDecode(getUrlArg(addition, "address"));
+    if (address.empty())
+        address = urlDecode(getUrlArg(addition, "ip"));
+    std::string mtu = getUrlArg(addition, "mtu");
+    std::string reserved = getUrlArg(addition, "reserved");
+    std::string dns = getUrlArg(addition, "dns");
+
+    std::string self_ip, self_ipv6;
+    for (const auto &item : split(address, ",")) {
+        std::string trimmed = trim(item);
+        if (trimmed.empty())
+            continue;
+        string_size slash = trimmed.find('/');
+        std::string ip_part = (slash == std::string::npos) ? trimmed : trimmed.substr(0, slash);
+        if (isIPv4(ip_part)) {
+            self_ip = trimmed;
+        } else if (isIPv6(ip_part)) {
+            self_ipv6 = trimmed;
+        }
+    }
+
+    string_array dns_servers;
+    if (!dns.empty())
+        dns_servers = split(dns, ",");
+
+    if (remarks.empty())
+        remarks = server + ":" + port;
+
+    wireguardConstruct(node, WG_DEFAULT_GROUP, remarks, server, port, self_ip, self_ipv6, priv_key, pub_key, psk, dns_servers, mtu, "", "", reserved, tribool(true), "");
 }
 
 // peer = (public-key = bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=, allowed-ips = "0.0.0.0/0, ::/0", endpoint = engage.cloudflareclient.com:2408, client-id = 139/184/125),(public-key = bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=, endpoint = engage.cloudflareclient.com:2408)
@@ -3025,10 +3460,16 @@ void explode(const std::string &link, Proxy &node)
         explodeHTTP(link, node);
     else if(startsWith(link, "Netch://"))
         explodeNetch(link, node);
-    else if(startsWith(link, "trojan://"))
+    else if(startsWith(link, "trojan://") || startsWith(link, "trojan-go://"))
         explodeTrojan(link, node);
     else if (strFind(link, "hysteria2://") || strFind(link, "hy2://"))
         explodeHysteria2(link, node);
+    else if (strFind(link, "hysteria://") || strFind(link, "hy://"))
+        explodeHysteria(link, node);
+    else if (strFind(link, "tuic://"))
+        explodeTuic(link, node);
+    else if (startsWith(link, "wireguard://") || startsWith(link, "wg://"))
+        explodeWireGuard(link, node);
     else if (startsWith(link, "anytls://"))
         explodeAnyTLS(link, node);
     else if(startsWith(link, "vless://"))
@@ -3085,12 +3526,12 @@ void explodeSub(std::string sub, std::vector<Proxy> &nodes)
     if(!processed)
     {
         std::string decoded = urlSafeBase64Decode(sub);
-        if(regFind(decoded, "(?:vmess|vless|ss|ssr|trojan|hysteria|hy2|anytls|onesocks|os|heysocks|xhttp)://") ||
+        if(regFind(decoded, "(?:vmess|vless|ss|ssr|trojan|trojan-go|hysteria|hy|hysteria2|hy2|tuic|wireguard|wg|anytls|onesocks|os|heysocks|xhttp)://") ||
            regFind(decoded, "(?:vmess|shadowsocks|http|trojan)\\s*?="))
         {
             sub = decoded;
         }
-        else if(regFind(sub, "(?:vmess|vless|ss|ssr|trojan|hysteria|hy2|anytls|onesocks|os|heysocks|xhttp)://"))
+        else if(regFind(sub, "(?:vmess|vless|ss|ssr|trojan|trojan-go|hysteria|hy|hysteria2|hy2|tuic|wireguard|wg|anytls|onesocks|os|heysocks|xhttp)://"))
         {
             // raw plain text subscription, keep sub
         }

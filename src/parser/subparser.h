@@ -27,6 +27,28 @@ void socksConstruct(Proxy &node, const std::string &group, const std::string &re
 void httpConstruct(Proxy &node, const std::string &group, const std::string &remarks, const std::string &server, const std::string &port, const std::string &username, const std::string &password, bool tls, tribool tfo = tribool(), tribool scv = tribool(), tribool tls13 = tribool(), const std::string &underlying_proxy = "");
 void trojanConstruct(Proxy &node, const std::string &group, const std::string &remarks, const std::string &server, const std::string &port, const std::string &password, const std::string &network, const std::string &host, const std::string &path, bool tlssecure, tribool udp = tribool(), tribool tfo = tribool(), tribool scv = tribool(), tribool tls13 = tribool(), const std::string &underlying_proxy = "");
 void snellConstruct(Proxy &node, const std::string &group, const std::string &remarks, const std::string &server, const std::string &port, const std::string &password, const std::string &obfs, const std::string &host, uint16_t version = 0, tribool udp = tribool(), tribool tfo = tribool(), tribool scv = tribool(), const std::string &underlying_proxy = "");
+void wireguardConstruct(Proxy &node, const std::string &group, const std::string &remarks, const std::string &server, const std::string &port, const std::string &selfIp, const std::string &selfIpv6, const std::string &privKey, const std::string &pubKey, const std::string &psk, const StringArray &dns, const std::string &mtu, const std::string &keepalive, const std::string &testUrl, const std::string &clientId, const tribool &udp, const std::string& underlying_proxy = "");
+
+void tuicConstruct(
+    Proxy &node,
+    const std::string &group,
+    const std::string &remarks,
+    const std::string &server,
+    const std::string &port,
+    const std::string &uuid,
+    const std::string &password,
+    const std::string &congestion_control,
+    const std::string &alpn,
+    const std::string &sni,
+    const std::string &udp_relay_mode,
+    tribool udp = tribool(),
+    tribool tfo = tribool(),
+    tribool scv = tribool(),
+    tribool reduce_rtt = tribool(),
+    tribool disable_sni = tribool(),
+    uint16_t request_timeout = 0,
+    const std::string &underlying_proxy = ""
+);
 
 void hysteriaConstruct(
     Proxy &node, 
@@ -90,7 +112,10 @@ void explodeQuan(const std::string &quan, Proxy &node);
 void explodeStdVMess(std::string vmess, Proxy &node);
 void explodeShadowrocket(std::string kit, Proxy &node);
 void explodeKitsunebi(std::string kit, Proxy &node);
+void explodeHysteria(std::string hysteria, Proxy &node);
 void explodeHysteria2(std::string hysteria2, Proxy &node);
+void explodeTuic(std::string tuic, Proxy &node);
+void explodeWireGuard(std::string wireguard, Proxy &node);
 void explodeAnyTLS(std::string anytls, Proxy &node);
 void explodeVless(std::string vless, Proxy &node);
 void explodeOneSocks(std::string onesocks, Proxy &node);
