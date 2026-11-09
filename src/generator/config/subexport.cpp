@@ -332,6 +332,15 @@ void proxyToClash(std::vector<Proxy> &nodes, YAML::Node &yamlnode, const ProxyGr
                 singleproxy["skip-cert-verify"] = scv.get();
             if(!x.ServerName.empty())
                 singleproxy["servername"] = x.ServerName;
+            if(!x.Fingerprint.empty())
+                singleproxy["client-fingerprint"] = x.Fingerprint;
+            if(!x.Alpn.empty())
+            {
+                YAML::Node alpnNode;
+                for(const auto &a : x.Alpn)
+                    alpnNode.push_back(a);
+                singleproxy["alpn"] = alpnNode;
+            }
             switch(hash_(x.TransferProtocol))
             {
             case "tcp"_hash:
@@ -448,8 +457,29 @@ void proxyToClash(std::vector<Proxy> &nodes, YAML::Node &yamlnode, const ProxyGr
                 singleproxy["sni"] = x.Host;
             if(std::all_of(x.Password.begin(), x.Password.end(), ::isdigit) && !x.Password.empty())
                 singleproxy["password"].SetTag("str");
+            if(!x.Alpn.empty())
+            {
+                YAML::Node alpnNode;
+                for(const auto &a : x.Alpn)
+                    alpnNode.push_back(a);
+                singleproxy["alpn"] = alpnNode;
+            }
             if(!scv.is_undef())
                 singleproxy["skip-cert-verify"] = scv.get();
+            else if(!x.AllowInsecure.is_undef())
+                singleproxy["skip-cert-verify"] = x.AllowInsecure.get();
+            if(!x.Fingerprint.empty())
+                singleproxy["client-fingerprint"] = x.Fingerprint;
+            else if(!x.RealityPublicKey.empty())
+                singleproxy["client-fingerprint"] = "chrome";
+            if(!x.RealityPublicKey.empty())
+                singleproxy["reality-opts"]["public-key"] = x.RealityPublicKey;
+            if(!x.RealityShortId.empty())
+                singleproxy["reality-opts"]["short-id"] = x.RealityShortId;
+            if(!x.RealitySpiderX.empty())
+                singleproxy["reality-opts"]["spider-x"] = x.RealitySpiderX;
+            if(!x.Flow.empty())
+                singleproxy["flow"] = x.Flow;
             switch(hash_(x.TransferProtocol))
             {
             case "tcp"_hash:
@@ -592,6 +622,13 @@ void proxyToClash(std::vector<Proxy> &nodes, YAML::Node &yamlnode, const ProxyGr
                 singleproxy["skip-cert-verify"] = scv.get();
             if(!x.ServerName.empty())
                 singleproxy["servername"] = x.ServerName;
+            if(!x.Alpn.empty())
+            {
+                YAML::Node alpnNode;
+                for(const auto &a : x.Alpn)
+                    alpnNode.push_back(a);
+                singleproxy["alpn"] = alpnNode;
+            }
             if(!x.Fingerprint.empty())
                 singleproxy["client-fingerprint"] = x.Fingerprint;
             else if(!x.RealityPublicKey.empty() || x.Flow == "xtls-rprx-vision")
@@ -600,6 +637,10 @@ void proxyToClash(std::vector<Proxy> &nodes, YAML::Node &yamlnode, const ProxyGr
                 singleproxy["reality-opts"]["public-key"] = x.RealityPublicKey;
             if(!x.RealityShortId.empty())
                 singleproxy["reality-opts"]["short-id"] = x.RealityShortId;
+            if(!x.RealitySpiderX.empty())
+                singleproxy["reality-opts"]["spider-x"] = x.RealitySpiderX;
+            if(!x.PacketEncoding.empty())
+                singleproxy["packet-encoding"] = x.PacketEncoding;
             if(!x.E.is_undef())
                 singleproxy["e"] = x.E.get();
             if(!x.H.empty())
@@ -1246,9 +1287,22 @@ std::string proxyToSurge(std::vector<Proxy> &nodes, const std::string &base_conf
 
 std::string proxyToSingle(std::vector<Proxy> &nodes, int types, extra_settings &ext)
 {
-    /// types: SS=1 SSR=2 VMess=4 Trojan=8
+    /// types: SS=1 SSR=2 VMess=4 Trojan=8 VLESS=16 Hysteria/Hy2=32 TUIC=64 WireGuard=128 AnyTLS=256
     std::string proxyStr, allLinks;
     bool ss = GETBIT(types, 1), ssr = GETBIT(types, 2), vmess = GETBIT(types, 3), trojan = GETBIT(types, 4);
+    bool vless = GETBIT(types, 5), hy = GETBIT(types, 6), tuic = GETBIT(types, 7), wg = GETBIT(types, 8), anytls = GETBIT(types, 9);
+    if ((types & 15) == 15 || types >= 0xFF)
+    {
+        ss = true;
+        ssr = true;
+        vmess = true;
+        trojan = true;
+        vless = true;
+        hy = true;
+        tuic = true;
+        wg = true;
+        anytls = true;
+    }
 
     for(Proxy &x : nodes)
     {
@@ -1307,6 +1361,20 @@ std::string proxyToSingle(std::vector<Proxy> &nodes, int types, extra_settings &
                 proxyStr += "&sni=" + x.SNI;
             else if(!host.empty())
                 proxyStr += "&sni=" + host;
+            if(!x.Alpn.empty())
+                proxyStr += "&alpn=" + join(x.Alpn, ",");
+            if(!x.Fingerprint.empty())
+                proxyStr += "&fp=" + x.Fingerprint;
+            if(!x.RealityPublicKey.empty())
+            {
+                proxyStr += "&security=reality&pbk=" + x.RealityPublicKey;
+                if(!x.RealityShortId.empty())
+                    proxyStr += "&sid=" + x.RealityShortId;
+                if(!x.RealitySpiderX.empty())
+                    proxyStr += "&spx=" + urlEncode(x.RealitySpiderX);
+            }
+            if(!x.Flow.empty())
+                proxyStr += "&flow=" + x.Flow;
             if(transproto == "ws")
             {
                 proxyStr += "&ws=1";
@@ -1320,8 +1388,60 @@ std::string proxyToSingle(std::vector<Proxy> &nodes, int types, extra_settings &
             }
             proxyStr += "#" + urlEncode(remark);
             break;
+        case ProxyType::VLESS:
+            if(!vless || x.UserId.empty())
+                continue;
+            {
+                std::string q;
+                if(x.TLSSecure)
+                {
+                    if(!x.RealityPublicKey.empty())
+                        q += "security=reality&";
+                    else
+                        q += "security=tls&";
+                }
+                else
+                {
+                    q += "security=none&";
+                }
+                if(!x.EncryptMethod.empty())
+                    q += "encryption=" + x.EncryptMethod + "&";
+                else
+                    q += "encryption=none&";
+                if(!x.Flow.empty())
+                    q += "flow=" + x.Flow + "&";
+                if(!x.TransferProtocol.empty())
+                    q += "type=" + x.TransferProtocol + "&";
+                else
+                    q += "type=tcp&";
+                if(!x.Path.empty())
+                    q += "path=" + urlEncode(x.Path) + "&";
+                if(!host.empty())
+                    q += "host=" + urlEncode(host) + "&";
+                if(!x.SNI.empty())
+                    q += "sni=" + urlEncode(x.SNI) + "&";
+                else if(!host.empty())
+                    q += "sni=" + urlEncode(host) + "&";
+                if(!x.Fingerprint.empty())
+                    q += "fp=" + x.Fingerprint + "&";
+                if(!x.RealityPublicKey.empty())
+                    q += "pbk=" + x.RealityPublicKey + "&";
+                if(!x.RealityShortId.empty())
+                    q += "sid=" + x.RealityShortId + "&";
+                if(!x.RealitySpiderX.empty())
+                    q += "spx=" + urlEncode(x.RealitySpiderX) + "&";
+                if(!x.Alpn.empty())
+                    q += "alpn=" + join(x.Alpn, ",") + "&";
+                if(!x.PacketEncoding.empty())
+                    q += "packetEncoding=" + x.PacketEncoding + "&";
+                if(!q.empty() && q.back() == '&')
+                    q.pop_back();
+                proxyStr = "vless://" + x.UserId + "@" + hostname + ":" + port + "?" + q + "#" + urlEncode(remark);
+            }
+            break;
         case ProxyType::TUIC:
-            if(!x.UserId.empty())
+            if(!tuic || x.UserId.empty())
+                continue;
             {
                 proxyStr = "tuic://" + x.UserId + ":" + password + "@" + hostname + ":" + port + "?";
                 std::string q;
@@ -1336,7 +1456,27 @@ std::string proxyToSingle(std::vector<Proxy> &nodes, int types, extra_settings &
                 proxyStr += q + "#" + urlEncode(remark);
             }
             break;
+        case ProxyType::Hysteria:
+            if(!hy)
+                continue;
+            {
+                std::string q;
+                if(!protocol.empty()) q += "protocol=" + protocol + "&";
+                if(!x.AuthStr.empty()) q += "auth=" + urlEncode(x.AuthStr) + "&";
+                if(!x.SNI.empty()) q += "peer=" + urlEncode(x.SNI) + "&";
+                else if(!host.empty()) q += "peer=" + urlEncode(host) + "&";
+                if(!x.AllowInsecure.is_undef() && x.AllowInsecure.get()) q += "insecure=1&";
+                if(!x.Up.empty()) q += "upmbps=" + std::to_string(x.UpSpeed) + "&";
+                if(!x.Down.empty()) q += "downmbps=" + std::to_string(x.DownSpeed) + "&";
+                if(!x.Alpn.empty()) q += "alpn=" + join(x.Alpn, ",") + "&";
+                if(!x.OBFS.empty()) q += "obfs=" + urlEncode(x.OBFS) + "&";
+                if(!q.empty() && q.back() == '&') q.pop_back();
+                proxyStr = "hysteria://" + hostname + ":" + port + "?" + q + "#" + urlEncode(remark);
+            }
+            break;
         case ProxyType::Hysteria2:
+            if(!hy)
+                continue;
             proxyStr = "hy2://" + password + "@" + hostname + ":" + port + "?";
             {
                 std::string q;
@@ -1349,6 +1489,39 @@ std::string proxyToSingle(std::vector<Proxy> &nodes, int types, extra_settings &
                 if(!q.empty() && q.back() == '&') q.pop_back();
                 proxyStr += q + "#" + urlEncode(remark);
             }
+            break;
+        case ProxyType::WireGuard:
+            if(!wg || x.PrivateKey.empty())
+                continue;
+            {
+                std::string q;
+                if(!x.PublicKey.empty()) q += "publickey=" + urlEncode(x.PublicKey) + "&";
+                if(!x.PreSharedKey.empty()) q += "presharedkey=" + urlEncode(x.PreSharedKey) + "&";
+                std::string addrs;
+                if(!x.SelfIP.empty()) addrs += x.SelfIP;
+                if(!x.SelfIPv6.empty())
+                {
+                    if(!addrs.empty()) addrs += ",";
+                    addrs += x.SelfIPv6;
+                }
+                if(!addrs.empty()) q += "address=" + urlEncode(addrs) + "&";
+                if(x.Mtu) q += "mtu=" + std::to_string(x.Mtu) + "&";
+                if(!x.ClientId.empty()) q += "reserved=" + urlEncode(x.ClientId) + "&";
+                if(!q.empty() && q.back() == '&') q.pop_back();
+                proxyStr = "wireguard://" + urlEncode(x.PrivateKey) + "@" + hostname + ":" + port + "?" + q + "#" + urlEncode(remark);
+            }
+            break;
+        case ProxyType::AnyTLS:
+            if(!anytls)
+                continue;
+            proxyStr = "anytls://" + password + "@" + hostname + ":" + port + "?";
+            if(!x.SNI.empty())
+                proxyStr += "sni=" + urlEncode(x.SNI) + "&";
+            if(!x.AllowInsecure.is_undef() && x.AllowInsecure.get())
+                proxyStr += "insecure=1&";
+            if(proxyStr.back() == '&' || proxyStr.back() == '?')
+                proxyStr.pop_back();
+            proxyStr += "#" + urlEncode(remark);
             break;
         default:
             continue;
@@ -2789,6 +2962,8 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
                     proxy.AddMember("e", x.E.get(), allocator);
                 if (!x.H.empty())
                     proxy.AddMember("h", rapidjson::StringRef(x.H.c_str()), allocator);
+                if (!x.PacketEncoding.empty())
+                    proxy.AddMember("packet_encoding", rapidjson::StringRef(x.PacketEncoding.c_str()), allocator);
 
                 auto transport = buildSingBoxTransport(x, allocator);
                 if (!transport.ObjectEmpty())
@@ -2914,6 +3089,8 @@ void proxyToSingBox(std::vector<Proxy> &nodes, rapidjson::Document &json, std::v
                 reality.AddMember("public_key", rapidjson::StringRef(x.RealityPublicKey.c_str()), allocator);
                 if (!x.RealityShortId.empty())
                     reality.AddMember("short_id", rapidjson::StringRef(x.RealityShortId.c_str()), allocator);
+                if (!x.RealitySpiderX.empty())
+                    reality.AddMember("spider_x", rapidjson::StringRef(x.RealitySpiderX.c_str()), allocator);
                 tls.AddMember("reality", reality, allocator);
 
                 rapidjson::Value utls(rapidjson::kObjectType);

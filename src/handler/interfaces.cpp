@@ -315,6 +315,7 @@ std::string subconverter(RESPONSE_CALLBACK_ARGS)
     switch(hash_(argTarget))
     {
     case "ss"_hash: case "ssd"_hash: case "ssr"_hash: case "sssub"_hash: case "v2ray"_hash: case "trojan"_hash: case "mixed"_hash:
+    case "vless"_hash: case "hysteria"_hash: case "hysteria2"_hash: case "hy2"_hash: case "tuic"_hash: case "wireguard"_hash: case "wg"_hash: case "anytls"_hash:
         lSimpleSubscription = true;
         break;
     case "clash"_hash: case "clashr"_hash: case "surge"_hash: case "quan"_hash: case "quanx"_hash: case "loon"_hash: case "surfboard"_hash: case "mellow"_hash: case "singbox"_hash:
@@ -875,9 +876,42 @@ std::string subconverter(RESPONSE_CALLBACK_ARGS)
         if(argUpload)
             uploadGist("trojan", argUploadPath, output_content, false);
         break;
+    case "vless"_hash:
+        writeLog(0, "Generate target: VLESS", LOG_LEVEL_INFO);
+        output_content = proxyToSingle(nodes, 16, ext);
+        if(argUpload)
+            uploadGist("vless", argUploadPath, output_content, false);
+        break;
+    case "hysteria"_hash:
+    case "hysteria2"_hash:
+    case "hy2"_hash:
+        writeLog(0, "Generate target: Hysteria2", LOG_LEVEL_INFO);
+        output_content = proxyToSingle(nodes, 32, ext);
+        if(argUpload)
+            uploadGist("hy2", argUploadPath, output_content, false);
+        break;
+    case "tuic"_hash:
+        writeLog(0, "Generate target: TUIC", LOG_LEVEL_INFO);
+        output_content = proxyToSingle(nodes, 64, ext);
+        if(argUpload)
+            uploadGist("tuic", argUploadPath, output_content, false);
+        break;
+    case "wireguard"_hash:
+    case "wg"_hash:
+        writeLog(0, "Generate target: WireGuard", LOG_LEVEL_INFO);
+        output_content = proxyToSingle(nodes, 128, ext);
+        if(argUpload)
+            uploadGist("wireguard", argUploadPath, output_content, false);
+        break;
+    case "anytls"_hash:
+        writeLog(0, "Generate target: AnyTLS", LOG_LEVEL_INFO);
+        output_content = proxyToSingle(nodes, 256, ext);
+        if(argUpload)
+            uploadGist("anytls", argUploadPath, output_content, false);
+        break;
     case "mixed"_hash:
         writeLog(0, "Generate target: Standard Subscription", LOG_LEVEL_INFO);
-        output_content = proxyToSingle(nodes, 15, ext);
+        output_content = proxyToSingle(nodes, 0xFFFF, ext);
         if(argUpload)
             uploadGist("sub", argUploadPath, output_content, false);
         break;

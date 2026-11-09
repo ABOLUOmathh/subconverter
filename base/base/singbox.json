@@ -10,7 +10,8 @@
                 "tag": "dns_proxy",
                 "type": "tls",
                 "server": "1.1.1.1",
-                "domain_resolver": "dns_resolver"
+                "domain_resolver": "dns_resolver",
+                "detour": "🚀 节点选择"
             },
             {
                 "tag": "dns_direct",
@@ -83,9 +84,16 @@
             "stack": "mixed"
         }
     ],
+    "http_clients": [
+        {
+            "tag": "direct-http"
+        }
+    ],
     "outbounds": [],
     "route": {
         "default_domain_resolver": "dns_resolver",
+        "default_http_client": "direct-http",
+        "final": "🐟 漏网之鱼",
         "rules": [],
         "auto_detect_interface": true
     },

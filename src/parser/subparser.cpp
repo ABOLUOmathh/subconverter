@@ -375,7 +375,20 @@ void explodeVmess(std::string vmess, Proxy &node)
 
     add = trim(add);
 
+    std::string fp, alpn, scv;
+    GetMember(jsondata, "fp", fp);
+    GetMember(jsondata, "alpn", alpn);
+    GetMember(jsondata, "scv", scv);
+    if(scv.empty())
+        GetMember(jsondata, "allowInsecure", scv);
+
     vmessConstruct(node, V2RAY_DEFAULT_GROUP, ps, add, port, type, id, aid, net, "auto", path, host, "", tls, sni);
+    if(!fp.empty())
+        node.Fingerprint = fp;
+    if(!alpn.empty())
+        node.Alpn = split(alpn, ",");
+    if(!scv.empty())
+        node.AllowInsecure = (scv == "1" || scv == "true");
 }
 
 void explodeVmessConf(std::string content, std::vector<Proxy> &nodes)
@@ -1072,11 +1085,38 @@ void explodeTrojan(std::string trojan, Proxy &node)
         node.Host = host;
     else if(!sni.empty())
         node.Host = sni;
+
+    std::string pbk = getUrlArg(addition, "pbk");
+    if(pbk.empty()) pbk = getUrlArg(addition, "public-key");
+    if(pbk.empty()) pbk = getUrlArg(addition, "publickey");
+    std::string sid = getUrlArg(addition, "sid");
+    if(sid.empty()) sid = getUrlArg(addition, "short-id");
+    if(sid.empty()) sid = getUrlArg(addition, "shortid");
+    std::string spx = urlDecode(getUrlArg(addition, "spx"));
+    if(spx.empty()) spx = urlDecode(getUrlArg(addition, "spider-x"));
+    if(spx.empty()) spx = urlDecode(getUrlArg(addition, "spiderx"));
+    std::string fp = getUrlArg(addition, "fp");
+    if(fp.empty()) fp = getUrlArg(addition, "fingerprint");
+    std::string flow = getUrlArg(addition, "flow");
+    std::string alpn = getUrlArg(addition, "alpn");
+
+    if(!pbk.empty())
+        node.RealityPublicKey = pbk;
+    if(!sid.empty())
+        node.RealityShortId = sid;
+    if(!spx.empty())
+        node.RealitySpiderX = spx;
+    if(!fp.empty())
+        node.Fingerprint = fp;
+    if(!flow.empty())
+        node.Flow = flow;
+    if(!alpn.empty())
+        node.Alpn = split(alpn, ",");
 }
 
 void explodeVless(std::string vless, Proxy &node)
 {
-    std::string server, port, uuid, addition, group, remark, flow, security, sni, pbk, sid, net, path, fp, e_val, h_val, udp_val;
+    std::string server, port, uuid, addition, group, remark, flow, security, sni, pbk, sid, spx, net, path, fp, e_val, h_val, udp_val, alpn, packet_encoding;
     vless.erase(0, 8);
     string_size pos = vless.rfind('#');
     if(pos != std::string::npos)
@@ -1117,6 +1157,12 @@ void explodeVless(std::string vless, Proxy &node)
     fp = getUrlArg(addition, "fp");
     pbk = getUrlArg(addition, "pbk");
     sid = getUrlArg(addition, "sid");
+    spx = urlDecode(getUrlArg(addition, "spx"));
+    if(spx.empty()) spx = urlDecode(getUrlArg(addition, "spider-x"));
+    if(spx.empty()) spx = urlDecode(getUrlArg(addition, "spiderx"));
+    alpn = getUrlArg(addition, "alpn");
+    packet_encoding = getUrlArg(addition, "packetEncoding");
+    if(packet_encoding.empty()) packet_encoding = getUrlArg(addition, "packet_encoding");
     net = getUrlArg(addition, "type");
     path = urlDecode(getUrlArg(addition, "path"));
     e_val = getUrlArg(addition, "e");
@@ -1135,6 +1181,10 @@ void explodeVless(std::string vless, Proxy &node)
     node.Fingerprint = fp;
     node.RealityPublicKey = pbk;
     node.RealityShortId = sid;
+    node.RealitySpiderX = spx;
+    node.PacketEncoding = packet_encoding;
+    if(!alpn.empty())
+        node.Alpn = split(alpn, ",");
     node.TransferProtocol = net.empty() ? "tcp" : net;
     node.Path = path;
     if(!e_val.empty())
@@ -1488,7 +1538,7 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
     std::string ip, ipv6, private_key, public_key, mtu; //wireguard
     std::string ports, obfs_protocol, up, up_speed, down, down_speed, auth, auth_str,/* obfs, sni,*/ fingerprint, ca, ca_str, recv_window_conn, recv_window, disable_mtu_discovery, hop_interval, alpn; //hysteria
     std::string obfs_password, cwnd; //hysteria2
-    std::string flow, pbk, sid, padding_len, fake_net, e_val, h_val; // custom protocols
+    std::string flow, pbk, sid, spx, packet_encoding, padding_len, fake_net, e_val, h_val; // custom protocols
     string_array dns_server;
     tribool udp, tfo, scv;
     Node singleproxy;
@@ -1553,6 +1603,16 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
             tls = safe_as<std::string>(singleproxy["tls"]) == "true" ? "tls" : "";
 
             vmessConstruct(node, group, ps, server, port, "", id, aid, net, cipher, path, host, edge, tls, sni, udp, tfo, scv, tribool(), underlying_proxy);
+            fingerprint.clear();
+            singleproxy["client-fingerprint"] >>= fingerprint;
+            if(!fingerprint.empty())
+                node.Fingerprint = fingerprint;
+            if(singleproxy["alpn"].IsDefined())
+            {
+                node.Alpn.clear();
+                for(const auto &a : singleproxy["alpn"])
+                    node.Alpn.emplace_back(safe_as<std::string>(a));
+            }
             break;
         case "ss"_hash:
             group = SS_DEFAULT_GROUP;
@@ -1717,6 +1777,32 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
             }
             if(!host.empty())
                 node.Host = host;
+
+            flow.clear(); pbk.clear(); sid.clear(); spx.clear(); fingerprint.clear();
+            singleproxy["flow"] >>= flow;
+            singleproxy["client-fingerprint"] >>= fingerprint;
+            if(singleproxy["reality-opts"].IsDefined())
+            {
+                singleproxy["reality-opts"]["public-key"] >>= pbk;
+                singleproxy["reality-opts"]["short-id"] >>= sid;
+                singleproxy["reality-opts"]["spider-x"] >>= spx;
+            }
+            if(!flow.empty())
+                node.Flow = flow;
+            if(!fingerprint.empty())
+                node.Fingerprint = fingerprint;
+            if(!pbk.empty())
+                node.RealityPublicKey = pbk;
+            if(!sid.empty())
+                node.RealityShortId = sid;
+            if(!spx.empty())
+                node.RealitySpiderX = spx;
+            if(singleproxy["alpn"].IsDefined())
+            {
+                node.Alpn.clear();
+                for(const auto &a : singleproxy["alpn"])
+                    node.Alpn.emplace_back(safe_as<std::string>(a));
+            }
             break;
         case "snell"_hash:
             group = SNELL_DEFAULT_GROUP;
@@ -1867,7 +1953,7 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
             break;
         case "vless"_hash:
             group = VLESS_DEFAULT_GROUP;
-            flow.clear(); pbk.clear(); sid.clear(); fingerprint.clear(); e_val.clear(); h_val.clear(); path.clear(); host.clear(); sni.clear();
+            flow.clear(); pbk.clear(); sid.clear(); spx.clear(); fingerprint.clear(); e_val.clear(); h_val.clear(); path.clear(); host.clear(); sni.clear(); packet_encoding.clear();
             singleproxy["uuid"] >>= id;
             singleproxy["flow"] >>= flow;
             singleproxy["client-fingerprint"] >>= fingerprint;
@@ -1875,7 +1961,9 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
             {
                 singleproxy["reality-opts"]["public-key"] >>= pbk;
                 singleproxy["reality-opts"]["short-id"] >>= sid;
+                singleproxy["reality-opts"]["spider-x"] >>= spx;
             }
+            singleproxy["packet-encoding"] >>= packet_encoding;
             net = singleproxy["network"].IsDefined() ? safe_as<std::string>(singleproxy["network"]) : "tcp";
             sni = singleproxy["servername"].IsDefined() ? safe_as<std::string>(singleproxy["servername"]) : safe_as<std::string>(singleproxy["sni"]);
             singleproxy["tls"] >>= tls;
@@ -1944,7 +2032,15 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes)
             node.ServerName = sni.empty() ? host : sni;
             node.RealityPublicKey = pbk;
             node.RealityShortId = sid;
+            node.RealitySpiderX = spx;
+            node.PacketEncoding = packet_encoding;
             node.Fingerprint = fingerprint;
+            if(singleproxy["alpn"].IsDefined())
+            {
+                node.Alpn.clear();
+                for(const auto &a : singleproxy["alpn"])
+                    node.Alpn.emplace_back(safe_as<std::string>(a));
+            }
             node.TransferProtocol = net;
             node.Path = path;
             node.Host = host;

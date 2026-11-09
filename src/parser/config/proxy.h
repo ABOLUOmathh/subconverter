@@ -150,6 +150,8 @@ struct Proxy
     String Flow;
     String RealityPublicKey;
     String RealityShortId;
+    String RealitySpiderX;
+    String PacketEncoding;
     String FakeNet;
     String FakeNetTCP;
     String FakeNetUDP;
